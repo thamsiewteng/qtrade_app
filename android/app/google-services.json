@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "377050676355",
+    "project_id": "qtrade-189b9",
+    "storage_bucket": "qtrade-189b9.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:377050676355:android:c27df427a4a83e2d6cafb6",
+        "android_client_info": {
+          "package_name": "com.example.qtrade_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVFJNZenlo4dSI9vfFoxlqDJzLRgOJU64"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

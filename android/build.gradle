@@ -1,3 +1,19 @@
+buildscript {
+    ext.kotlin_version = '1.9.22'
+    repositories {
+        google()
+        mavenCentral()
+        // You can also add jcenter() if needed
+    }
+
+    dependencies {
+        // Your current classpath dependencies
+        classpath 'com.google.gms:google-services:4.3.15' // Add this line for the Google Services plugin
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        // Ensure that the versions of Gradle and other classpath dependencies are correct
+    }
+}
+
 allprojects {
     repositories {
         google()
