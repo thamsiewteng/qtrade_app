@@ -1,8 +1,48 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_signin_button/flutter_signin_button.dart';
+import 'package:qtrade_app/screen/homePage.dart';
 
 class LoginPage extends StatelessWidget {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  Future<void> _login(BuildContext context) async {
+    try {
+      await _auth.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+      // On successful login, navigate to the homepage
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => HomePage()),
+      );
+    } on FirebaseAuthException catch (e) {
+      _showErrorDialog(context, e.message ?? 'Login failed');
+    }
+  }
+
+  void _showErrorDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('An Error Occurred'),
+        content: Text(message),
+        actions: <Widget>[
+          TextButton(
+            child: Text('Okay'),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -31,26 +71,18 @@ class LoginPage extends StatelessWidget {
               ),
             ),
             SizedBox(height: 32),
+            // ... Image and text widgets here ...
             TextField(
+              controller: _emailController,
               decoration: InputDecoration(labelText: 'Email address'),
             ),
             SizedBox(height: 8),
             TextField(
+              controller: _passwordController,
               obscureText: true,
               decoration: InputDecoration(labelText: 'Password'),
             ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () {
-                  // TODO: Implement forgot password logic
-                },
-                child: Text(
-                  'Forgot password?',
-                  style: GoogleFonts.robotoCondensed(),
-                ),
-              ),
-            ),
+            // ... Forgot password button here ...
             SizedBox(height: 24),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -61,49 +93,13 @@ class LoginPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              onPressed: () {
-                // TODO: Implement login logic
-              },
+              onPressed: () => _login(context),
               child: Text(
                 'Login',
                 style: GoogleFonts.robotoCondensed(fontSize: 20),
               ),
             ),
-            SizedBox(height: 16),
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: Divider(thickness: 1),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Text('or'),
-                ),
-                Expanded(
-                  child: Divider(thickness: 1),
-                ),
-              ],
-            ),
-            SizedBox(height: 16),
-            SignInButton(
-              Buttons.Google,
-              text: "Sign in with Google",
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              onPressed: () {
-                // TODO: Implement Google sign-in logic
-              },
-            ),
-            TextButton(
-              onPressed: () {
-                // TODO: Navigate to sign-up page
-              },
-              child: Text(
-                "Don't have an account? Sign Up",
-                style: GoogleFonts.robotoCondensed(),
-              ),
-            ),
+            // ... Other widgets here ...
           ],
         ),
       ),

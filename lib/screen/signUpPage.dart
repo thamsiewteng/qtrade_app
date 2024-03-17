@@ -1,8 +1,69 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_signin_button/flutter_signin_button.dart';
+import 'package:qtrade_app/screen/homePage.dart';
+import '../services/firebaseAuthenticationService.dart';
 
-class SignUpPage extends StatelessWidget {
+class SignUpPage extends StatefulWidget {
+  @override
+  _SignUpPageState createState() => _SignUpPageState();
+}
+
+class _SignUpPageState extends State<SignUpPage> {
+  final TextEditingController _fullNameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+
+  final FirebaseAuthenticationService _authService =
+      FirebaseAuthenticationService();
+
+  Future<void> _signUp() async {
+    final String fullName = _fullNameController.text.trim();
+    final String email = _emailController.text.trim();
+    final String password = _passwordController.text.trim();
+    final String confirmPassword = _confirmPasswordController.text.trim();
+
+    if (password == confirmPassword && password.isNotEmpty) {
+      try {
+        await _authService.signUp(
+          email: email,
+          password: password,
+          fullName: fullName,
+        );
+        // If the sign-up is successful, navigate to the next screen or display a success message.
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => HomePage()),
+        ); // Make sure you define the '/home' route in your app
+      } catch (e) {
+        // If there is an error, show a dialog with the error message
+        _showErrorDialog(e.toString());
+      }
+    } else {
+      _showErrorDialog('Passwords do not match or fields are empty.');
+    }
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('An Error Occurred'),
+        content: Text(message),
+        actions: <Widget>[
+          TextButton(
+            child: Text('Okay'),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -16,7 +77,6 @@ class SignUpPage extends StatelessWidget {
         elevation: 0,
       ),
       body: SingleChildScrollView(
-        // Enable scrolling
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -24,9 +84,9 @@ class SignUpPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Image.asset('assets/images/signUpPage.png', height: 200),
-              SizedBox(height: 16), // Reduced height to avoid overflow
+              SizedBox(height: 16),
               Text(
-                'Invest smartly with zero risk.',
+                'Invest smartly with zerso risk.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.robotoCondensed(
                   color: Colors.grey[600],
@@ -35,36 +95,37 @@ class SignUpPage extends StatelessWidget {
               ),
               SizedBox(height: 32),
               TextField(
+                controller: _fullNameController,
                 decoration: InputDecoration(labelText: 'Full name'),
               ),
               SizedBox(height: 8),
               TextField(
+                controller: _emailController,
                 decoration: InputDecoration(labelText: 'Email address'),
               ),
               SizedBox(height: 8),
               TextField(
+                controller: _passwordController,
                 obscureText: true,
                 decoration: InputDecoration(labelText: 'Password'),
               ),
               SizedBox(height: 8),
               TextField(
+                controller: _confirmPasswordController,
                 obscureText: true,
                 decoration: InputDecoration(labelText: 'Confirm Password'),
               ),
               SizedBox(height: 24),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF0D1545), // Button background color
-                  foregroundColor: Colors.white, // Button text color
-                  minimumSize: Size(double.infinity, 50), // Button size
+                  backgroundColor: Color(0xFF0D1545),
+                  foregroundColor: Colors.white,
+                  minimumSize: Size(double.infinity, 50),
                   shape: RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(8), // Button border radius
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                onPressed: () {
-                  // Implement sign-up logic
-                },
+                onPressed: _signUp,
                 child: Text(
                   'Sign up',
                   style: GoogleFonts.robotoCondensed(fontSize: 18),
@@ -93,10 +154,9 @@ class SignUpPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 onPressed: () {
-                  // Implement Google sign-up logic
+                  // TODO: Implement Google sign-up logic
                 },
               ),
-              SizedBox(height: 16), // Add space before the login prompt
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop(); // Return to previous screen
@@ -111,5 +171,14 @@ class SignUpPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _fullNameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
   }
 }

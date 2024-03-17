@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:qtrade_app/loginPage.dart';
-import 'package:qtrade_app/signUpPage.dart';
+import 'package:qtrade_app/screen/loginPage.dart';
+import 'package:qtrade_app/screen/signUpPage.dart';
 
 class OnboardingPage extends StatelessWidget {
   @override
