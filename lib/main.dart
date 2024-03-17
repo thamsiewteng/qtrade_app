@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:qtrade_app/splash.dart';
+import 'package:qtrade_app/screen/splash.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 Future main() async {
