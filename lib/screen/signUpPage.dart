@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_signin_button/flutter_signin_button.dart';
 import 'package:qtrade_app/screen/homePage.dart';
+import 'package:qtrade_app/screen/onBoardingPage.dart';
 import '../services/firebaseAuthenticationService.dart';
 
 class SignUpPage extends StatefulWidget {
@@ -86,7 +87,7 @@ class _SignUpPageState extends State<SignUpPage> {
               Image.asset('assets/images/signUpPage.png', height: 200),
               SizedBox(height: 16),
               Text(
-                'Invest smartly with zerso risk.',
+                'Invest smartly with zero risk.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.robotoCondensed(
                   color: Colors.grey[600],
@@ -159,7 +160,10 @@ class _SignUpPageState extends State<SignUpPage> {
               ),
               TextButton(
                 onPressed: () {
-                  Navigator.of(context).pop(); // Return to previous screen
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => OnboardingPage()),
+                  );
                 },
                 child: Text(
                   'Already have an account? Login',

@@ -17,7 +17,6 @@ class OnboardingPage extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
           Spacer(),
-          // Use an appropriate widget to load your image
           Image.asset('assets/images/onBoardingPage.png', height: 200),
           SizedBox(height: 24),
           Text(
@@ -38,8 +37,6 @@ class OnboardingPage extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 40),
             child: ElevatedButton(
               onPressed: () {
-                // TODO: Add create account action
-                // When you need to navigate to the sign-up page, you can use:
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => SignUpPage()),
@@ -48,9 +45,9 @@ class OnboardingPage extends StatelessWidget {
               child: Text('Create account',
                   style: GoogleFonts.robotoCondensed(fontSize: 18)),
               style: ElevatedButton.styleFrom(
-                minimumSize: Size(double.infinity, 40), // set the size
-                backgroundColor: Color(0xFF0D1545), // background (button) color
-                foregroundColor: Colors.white, // foreground (text) color
+                minimumSize: Size(double.infinity, 40),
+                backgroundColor: Color(0xFF0D1545),
+                foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -59,7 +56,6 @@ class OnboardingPage extends StatelessWidget {
           ),
           TextButton(
             onPressed: () {
-              // TODO: Add login action
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => LoginPage()),
@@ -67,7 +63,7 @@ class OnboardingPage extends StatelessWidget {
             },
             child: Text('Login', style: GoogleFonts.robotoCondensed()),
           ),
-          SizedBox(height: 30), // add some space at the bottom
+          SizedBox(height: 30),
         ],
       ),
     );
