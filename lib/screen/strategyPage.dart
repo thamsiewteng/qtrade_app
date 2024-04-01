@@ -2,11 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:qtrade_app/screen/deployedHistoryPage.dart';
 
 import '../widgets/customBottomNavigationBar.dart';
 import 'algorithmPage.dart';
 
 class StrategyPage extends StatelessWidget {
+  final TextEditingController _tickerController = TextEditingController();
+
+  StrategyPage({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     User? user = FirebaseAuth.instance.currentUser;
@@ -46,7 +51,12 @@ class StrategyPage extends StatelessWidget {
           ),
         ),
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.only(
+            left: 16.0,
+            top: 16.0,
+            right: 16.0,
+            bottom: 120.0, // Enough bottom padding to fill out the space
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -139,7 +149,7 @@ class StrategyPage extends StatelessWidget {
                               var algoData = algoSnapshot.data!.data()
                                   as Map<String, dynamic>;
                               return _buildAlgorithmCircle(
-                                  algoData['algo_name']);
+                                  algoData['algo_name'], context);
                             },
                           );
                         } else {
@@ -155,9 +165,10 @@ class StrategyPage extends StatelessWidget {
               Text(
                 'Deploy Algorithm',
                 style: GoogleFonts.robotoCondensed(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black),
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
               ),
               _buildDeployAlgorithmSection(context),
             ],
@@ -173,11 +184,17 @@ class StrategyPage extends StatelessWidget {
     );
   }
 
-  Widget _buildAlgorithmCircle(String name) {
+  Widget _buildAlgorithmCircle(String name, BuildContext context) {
     // Wrap your existing Padding with a GestureDetector to handle taps
     return GestureDetector(
       onTap: () {
-        // Implement what happens when you tap on the algorithm circle
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            // Pass the selected algorithm name
+            builder: (context) => DeployedHistoryPage(algoName: name),
+          ),
+        );
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -226,82 +243,153 @@ class StrategyPage extends StatelessWidget {
     );
   }
 
-  // ... rest of your widget-building methods ...
   Widget _buildDeployAlgorithmSection(BuildContext context) {
-    return Card(
-      elevation: 4,
-      shadowColor: Colors.black54,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: 20),
-            DropdownButtonFormField<String>(
-              decoration: InputDecoration(
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 15, vertical: 15),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Color(0xFFeeeef7),
-              ),
-              hint: Text(
-                'Select Algorithm',
-                style: GoogleFonts.robotoCondensed(color: Colors.black),
-              ),
-              items: ['Prophet', 'XGBoost', 'RF+LSTM', 'CNN+LSTM']
-                  .map((String value) => DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      ))
-                  .toList(),
-              onChanged: (value) {
-                // TODO: Handle change
-              },
-              icon: Icon(Icons.keyboard_arrow_down, color: Colors.black),
-            ),
-            SizedBox(height: 20),
-            TextField(
-              decoration: InputDecoration(
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 15, vertical: 15),
-                hintText: 'Stock Ticker Symbol',
-                hintStyle: GoogleFonts.robotoCondensed(color: Colors.black),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Color(0xFFeeeef7),
-              ),
-            ),
-            SizedBox(height: 30),
-            Container(
-              width: double.infinity, // Make the button full width
-              child: ElevatedButton(
-                onPressed: () {
-                  // TODO: Implement deployment action
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Card(
+        elevation: 2,
+        shadowColor: Colors.transparent,
+        color: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(height: 10),
+              FutureBuilder<QuerySnapshot>(
+                future:
+                    FirebaseFirestore.instance.collection('algorithm').get(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Text('Error: ${snapshot.error}');
+                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return Text('No algorithms found');
+                  }
+                  List<DropdownMenuItem<String>> dropdownItems = snapshot
+                      .data!.docs
+                      .map((doc) => DropdownMenuItem<String>(
+                            value:
+                                doc.id, // Unique value for each dropdown item
+                            child: Text(
+                                doc.get('algo_name')), // Display algorithm name
+                          ))
+                      .toList();
+
+                  return DropdownButtonFormField<String>(
+                    decoration: InputDecoration(
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Color.fromARGB(255, 235, 235, 245),
+                    ),
+                    hint: Text('Select Algorithm',
+                        style:
+                            GoogleFonts.robotoCondensed(color: Colors.black54)),
+                    items: dropdownItems,
+                    onChanged: (value) {
+                      // Do something with the selected algorithm
+                    },
+                    icon: Icon(Icons.keyboard_arrow_down),
+                  );
                 },
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 15),
-                  child: Text('Deploy now',
-                      style: TextStyle(fontSize: 18, color: Colors.white)),
+              ),
+              SizedBox(height: 20),
+              Text(
+                'Stock Ticker Symbol',
+                style: GoogleFonts.robotoCondensed(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF0D0828), // Button color
-                  shape: RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(30), // Button border radius
+              ),
+              StreamBuilder<DocumentSnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('s&p500')
+                    .doc('tickers')
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return CircularProgressIndicator();
+                  }
+                  List<String> tickers =
+                      List<String>.from(snapshot.data!['symbols']);
+                  return Autocomplete<String>(
+                    optionsBuilder: (TextEditingValue textEditingValue) {
+                      if (textEditingValue.text.isEmpty) {
+                        return const Iterable<String>.empty();
+                      } else {
+                        return tickers.where((String option) {
+                          return option
+                              .toLowerCase()
+                              .startsWith(textEditingValue.text.toLowerCase());
+                        });
+                      }
+                    },
+                    onSelected: (String selection) {
+                      debugPrint('You just selected $selection');
+                    },
+                    fieldViewBuilder: (BuildContext context,
+                        TextEditingController textEditingController,
+                        FocusNode focusNode,
+                        VoidCallback onFieldSubmitted) {
+                      return TextField(
+                        controller: textEditingController,
+                        focusNode: focusNode,
+                        decoration: InputDecoration(
+                          contentPadding:
+                              EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          hintText: 'Enter ticker symbol',
+                          hintStyle: GoogleFonts.robotoCondensed(
+                              color: Colors.black54),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide.none,
+                          ),
+                          filled: true,
+                          fillColor: Color.fromARGB(255, 235, 235, 245),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+              SizedBox(height: 20),
+              Align(
+                alignment: Alignment.centerRight,
+                child: ElevatedButton(
+                  onPressed: () {
+                    // Handle the deploy action
+                  },
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 10),
+                    child: Text(
+                      'Deploy now',
+                      style: GoogleFonts.robotoCondensed(
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF0D0828), // Button color
+                    shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(10), // Button border radius
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
