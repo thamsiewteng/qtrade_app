@@ -1,11 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:qtrade_app/screen/splash.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:csv/csv.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 Future main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   runApp(MyApp());
+  //uploadSP500Data();
+}
+
+Future<void> uploadSP500Data() async {
+  final firestoreInstance = FirebaseFirestore.instance;
+  final sp500Collection = firestoreInstance.collection('s&p500');
+
+  // Check if the collection already has data to avoid duplication
+  final existingData = await sp500Collection.limit(1).get();
+  if (existingData.size != 0) {
+    // Collection already has data, so we do not upload it again.
+    return;
+  }
+
+  final csvData = await rootBundle.loadString('assets/data/sp500.csv');
+  List<List<dynamic>> rowsAsListOfValues =
+      const CsvToListConverter().convert(csvData);
+
+  // Assuming the first row contains headers, and the first column is the ticker symbol
+  List<dynamic> tickerSymbols =
+      rowsAsListOfValues.sublist(1).map((row) => row[0]).toList();
+
+  // Create a single document with an array of ticker symbols
+  await sp500Collection.doc('tickers').set({'symbols': tickerSymbols});
 }
 
 class MyApp extends StatelessWidget {
@@ -17,21 +44,6 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
