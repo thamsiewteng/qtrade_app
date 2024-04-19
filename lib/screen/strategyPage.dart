@@ -6,6 +6,7 @@ import 'package:qtrade_app/screen/deployedHistoryPage.dart';
 
 import '../widgets/customBottomNavigationBar.dart';
 import 'algorithmPage.dart';
+import 'package:intl/intl.dart';
 
 class StrategyPage extends StatelessWidget {
   final TextEditingController _tickerController = TextEditingController();
@@ -170,7 +171,7 @@ class StrategyPage extends StatelessWidget {
                   color: Colors.black,
                 ),
               ),
-              _buildDeployAlgorithmSection(context),
+              _buildDeployAlgorithmSection(context, userId),
             ],
           ),
         ),
@@ -243,7 +244,15 @@ class StrategyPage extends StatelessWidget {
     );
   }
 
-  Widget _buildDeployAlgorithmSection(BuildContext context) {
+  Widget _buildDeployAlgorithmSection(BuildContext context, String userId) {
+    // Calculate start date constraints based on current date
+    DateTime currentDate = DateTime.now();
+    DateTime eightYearsAgo = currentDate.subtract(Duration(days: 365 * 8));
+    DateTime twelveYearsAgo = currentDate.subtract(Duration(days: 365 * 12));
+
+    // Initialize start date to eight years ago by default
+    DateTime selectedStartDate = eightYearsAgo;
+
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Card(
@@ -257,9 +266,19 @@ class StrategyPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(height: 10),
-              FutureBuilder<QuerySnapshot>(
-                future:
-                    FirebaseFirestore.instance.collection('algorithm').get(),
+              Text(
+                'Algorithm',
+                style: GoogleFonts.robotoCondensed(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+              FutureBuilder<DocumentSnapshot>(
+                future: FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(userId)
+                    .get(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Center(child: CircularProgressIndicator());
@@ -267,38 +286,54 @@ class StrategyPage extends StatelessWidget {
                   if (snapshot.hasError) {
                     return Text('Error: ${snapshot.error}');
                   }
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return Text('No algorithms found');
+                  if (!snapshot.hasData || snapshot.data!.data() == null) {
+                    return Text('User not found');
                   }
-                  List<DropdownMenuItem<String>> dropdownItems = snapshot
-                      .data!.docs
-                      .map((doc) => DropdownMenuItem<String>(
-                            value:
-                                doc.id, // Unique value for each dropdown item
-                            child: Text(
-                                doc.get('algo_name')), // Display algorithm name
-                          ))
-                      .toList();
-
-                  return DropdownButtonFormField<String>(
-                    decoration: InputDecoration(
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: Color.fromARGB(255, 235, 235, 245),
-                    ),
-                    hint: Text('Select Algorithm',
-                        style:
-                            GoogleFonts.robotoCondensed(color: Colors.black54)),
-                    items: dropdownItems,
-                    onChanged: (value) {
-                      // Do something with the selected algorithm
+                  List<dynamic> integratedAlgos = (snapshot.data!.data()
+                          as Map<String, dynamic>)['integrated_algoID'] ??
+                      [];
+                  return FutureBuilder<QuerySnapshot>(
+                    future: FirebaseFirestore.instance
+                        .collection('algorithm')
+                        .where(FieldPath.documentId, whereIn: integratedAlgos)
+                        .get(),
+                    builder: (context, algoSnapshot) {
+                      if (algoSnapshot.connectionState ==
+                          ConnectionState.waiting) {
+                        return Center(child: CircularProgressIndicator());
+                      }
+                      if (!algoSnapshot.hasData ||
+                          algoSnapshot.data!.docs.isEmpty) {
+                        return Text('No algorithms found');
+                      }
+                      List<DropdownMenuItem<String>> dropdownItems =
+                          algoSnapshot.data!.docs.map((doc) {
+                        return DropdownMenuItem<String>(
+                          value: doc.id,
+                          child: Text(doc.get('algo_name')),
+                        );
+                      }).toList();
+                      return DropdownButtonFormField<String>(
+                        decoration: InputDecoration(
+                          contentPadding:
+                              EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide.none,
+                          ),
+                          filled: true,
+                          fillColor: Color.fromARGB(255, 235, 235, 245),
+                        ),
+                        hint: Text('Select Algorithm',
+                            style: GoogleFonts.robotoCondensed(
+                                color: Colors.black54)),
+                        items: dropdownItems,
+                        onChanged: (value) {
+                          // Do something with the selected algorithm
+                        },
+                        icon: Icon(Icons.keyboard_arrow_down),
+                      );
                     },
-                    icon: Icon(Icons.keyboard_arrow_down),
                   );
                 },
               ),
@@ -306,7 +341,7 @@ class StrategyPage extends StatelessWidget {
               Text(
                 'Stock Ticker Symbol',
                 style: GoogleFonts.robotoCondensed(
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.black,
                 ),
@@ -362,6 +397,60 @@ class StrategyPage extends StatelessWidget {
                   );
                 },
               ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment
+                    .spaceBetween, // Adjust the spacing as needed
+                children: [
+                  Text(
+                    'Start Date (8-12 years ago)',
+                    style: GoogleFonts.robotoCondensed(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.help_outline),
+                    onPressed: () => _showInstructions(context),
+                    padding: EdgeInsets
+                        .zero, // This reduces the default padding around the icon
+                    constraints:
+                        BoxConstraints(), // Removes constraints for minimum hit testing size
+                  ),
+                ],
+              ),
+              InkWell(
+                onTap: () async {
+                  DateTime? picked = await showDatePicker(
+                    context: context,
+                    initialDate: selectedStartDate,
+                    firstDate: twelveYearsAgo,
+                    lastDate: eightYearsAgo,
+                  );
+                  if (picked != null) {
+                    // Update the start date if the user picks a valid date
+                    selectedStartDate = picked;
+                  }
+                },
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    color: Color.fromARGB(255, 235, 235, 245),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        DateFormat('yyyy-MM-dd').format(selectedStartDate),
+                        style:
+                            GoogleFonts.robotoCondensed(color: Colors.black54),
+                      ),
+                      Icon(Icons.calendar_today),
+                    ],
+                  ),
+                ),
+              ),
               SizedBox(height: 20),
               Align(
                 alignment: Alignment.centerRight,
@@ -392,6 +481,43 @@ class StrategyPage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  void _showInstructions(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Instructions',
+              style: GoogleFonts.robotoCondensed(fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text(
+                  'For optimal algorithm performance:',
+                  style: GoogleFonts.robotoCondensed(fontSize: 16),
+                ),
+                Text(
+                    '• Select a start date 8 to 12 years prior to today.\n'
+                    '• This time frame ensures sufficient historical data for accuracy.\n'
+                    '• It also helps maintain manageable computation times.\n'
+                    'Choosing within this range balances efficiency with predictive power.',
+                    style: GoogleFonts.robotoCondensed(fontSize: 16)),
+                // Add more Text widgets for additional instructions
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Close'),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 }

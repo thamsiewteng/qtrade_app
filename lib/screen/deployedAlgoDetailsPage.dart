@@ -4,11 +4,18 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'dart:convert';
 import 'dart:math' as math;
+import 'package:intl/intl.dart';
 
 class DeployedAlgoDetailsPage extends StatelessWidget {
   final String documentId;
 
   DeployedAlgoDetailsPage({required this.documentId});
+
+  Future<List<Map<String, dynamic>>> fetchBacktestHistory() async {
+    FirebaseFirestore firestore = FirebaseFirestore.instance;
+    var backtestCollection = await firestore.collection('backtest_algo').get();
+    return backtestCollection.docs.map((doc) => doc.data()).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,13 +23,13 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: BackButton(color: Colors.white),
+        leading: BackButton(color: Colors.black),
         backgroundColor: Color.fromARGB(255, 188, 208, 225),
         elevation: 0,
         title: Text(
           'Details',
           style: GoogleFonts.robotoCondensed(
-            color: Colors.white,
+            color: Colors.black,
             fontSize: 30,
             fontWeight: FontWeight.bold,
           ),
@@ -79,6 +86,18 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
             final double topPadding =
                 20; // Additional top padding for the highest price
             final maxYWithPadding = maxY + topPadding;
+
+            final String deployName = data['deploy_algoName'];
+            final String deployTicker = data['deploy_stockTicker'];
+            // Let's assume 'deploy_date' is the field where the Timestamp is stored
+
+            DateTime deployDate = (data['deploy_date'] as Timestamp).toDate();
+
+            // Format the dates
+
+            String formattedDeployedDate = formatDateWithTimezone(deployDate,
+                pattern: 'dd/MM/yyyy HH:mm:ss', isUtc: false);
+
             return SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -280,7 +299,27 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
                       ],
                     ),
                   ),
+
                   SizedBox(height: 20),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text('Deployed Algorithm',
+                            style: GoogleFonts.robotoCondensed(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            )),
+                        Text('Algorithm Name: $deployName',
+                            style: GoogleFonts.robotoCondensed()),
+                        Text('Ticker: $deployTicker',
+                            style: GoogleFonts.robotoCondensed()),
+                        Text('Deploy Date: $formattedDeployedDate',
+                            style: GoogleFonts.robotoCondensed()),
+                      ],
+                    ),
+                  ),
                   Padding(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16.0, vertical: 8.0),
@@ -350,6 +389,81 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
                       ),
                     ),
                   ),
+                  // Backtest history title
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Backtest History',
+                          style: GoogleFonts.robotoCondensed(
+                            color: Colors.black,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        // Add your FutureBuilder or existing logic here for backtest history
+                        // ...
+                        // Add backtest button
+                      ],
+                    ),
+                  ),
+                  // FutureBuilder to display backtest history
+                  FutureBuilder<List<Map<String, dynamic>>>(
+                    future: fetchBacktestHistory(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return Center(child: CircularProgressIndicator());
+                      } else if (snapshot.hasError) {
+                        return Center(
+                            child: Text(
+                                'Error fetching backtest history: ${snapshot.error}'));
+                      } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return Center(
+                            child: Text('No backtest data available'));
+                      } else {
+                        return Column(
+                          children: snapshot.data!
+                              .asMap()
+                              .entries
+                              .map((entry) => buildBacktestCard(
+                                  context, entry.value, entry.key))
+                              .toList(),
+                        );
+                      }
+                    },
+                  ),
+
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding:
+                          const EdgeInsets.only(right: 16.0), // Right padding
+                      child: ElevatedButton(
+                        onPressed: () {
+                          _showBacktestDialog(context, data['deploy_startDate'],
+                              data['deploy_date']);
+                        },
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 10),
+                          child: Text(
+                            'Backtest now',
+                            style: GoogleFonts.robotoCondensed(
+                              fontSize: 16,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF0D0828), // Button color
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                                10), // Button border radius
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             );
@@ -359,69 +473,66 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
     );
   }
 
-  // void _showPerformanceMetricsExplanation(BuildContext context) {
-  //   showDialog(
-  //     context: context,
-  //     builder: (BuildContext context) {
-  //       return AlertDialog(
-  //         title: Text("Performance Metrics"),
-  //         content: SingleChildScrollView(
-  //           child: ListBody(
-  //             children: <Widget>[
-  //               Text(
-  //                   "1. MAE (Mean Absolute Error): ..."), // Your explanations here
-  //               Text("2. MSE (Mean Squared Error): ..."),
-  //               Text("3. R²: ..."),
-  //               Text("4. MAPE (Mean Absolute Percentage Error): ..."),
-  //               // Add more explanations as needed
-  //             ],
-  //           ),
-  //         ),
-  //         actions: <Widget>[
-  //           TextButton(
-  //             child: Text('Close'),
-  //             onPressed: () {
-  //               Navigator.of(context).pop();
-  //             },
-  //           ),
-  //         ],
-  //       );
-  //     },
-  //   );
-  // }
+  void _showInstructions(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Instructions'),
+          content: Text('Select a start date and end date for backtesting.'),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Got it'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
-  // Widget _buildPerformanceMetricsCard(Map<String, dynamic> data) {
-  //   return Card(
-  //     elevation: 5,
-  //     shadowColor: Colors.grey.withOpacity(0.5),
-  //     margin: const EdgeInsets.all(16),
-  //     child: Padding(
-  //       padding: const EdgeInsets.all(16.0),
-  //       child: Column(
-  //         crossAxisAlignment: CrossAxisAlignment.start,
-  //         children: [
-  //           Row(
-  //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //             children: [
-  //               Text(
-  //                 'Performance Metrics',
-  //                 style: GoogleFonts.robotoCondensed(
-  //                   fontSize: 18,
-  //                   fontWeight: FontWeight.bold,
-  //                 ),
-  //               ),
-  //               IconButton(icon: Icon(Icons.help_outline), onPressed: () => ()
-  //                   // _showPerformanceMetricsExplanation(
-  //                   //     context as BuildContext),
-  //                   )
-  //             ],
-  //           ),
-  //           // Metrics are displayed here...
-  //         ],
-  //       ),
-  //     ),
-  //   );
-  // }
+  Widget buildBacktestCard(
+      BuildContext context, Map<String, dynamic> backtestData, int index) {
+    // Extract dates from Timestamps
+    DateTime btDate = (backtestData['bt_date'] as Timestamp).toDate();
+    DateTime btStartDate = (backtestData['bt_startDate'] as Timestamp).toDate();
+    DateTime btEndDate = (backtestData['bt_endDate'] as Timestamp).toDate();
+
+    // Format the dates
+
+    String formattedBtDate =
+        formatDateWithTimezone(btDate, pattern: 'dd/MM/yyyy', isUtc: true);
+    // Use the helper function to format the start and end date
+    String formattedStartDate =
+        formatDateWithTimezone(btStartDate, pattern: 'dd/MM/yyyy', isUtc: true);
+    String formattedEndDate =
+        formatDateWithTimezone(btEndDate, pattern: 'dd/MM/yyyy', isUtc: true);
+
+    // Use the index to label the backtest
+    // String backtestLabel = 'Backtest ${index + 1}';
+
+    return Card(
+      margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: ListTile(
+        title: Text('Backtest ${index + 1}',
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text('Period: $formattedStartDate - $formattedEndDate'),
+        trailing: Text(formattedBtDate),
+      ),
+    );
+  }
+
+  String formatDateWithTimezone(DateTime date,
+      {String? pattern, bool isUtc = false}) {
+    DateFormat formatter = DateFormat(pattern ?? 'dd/MM/yyyy HH:mm:ss');
+    // If the date is in UTC, convert it to the local time
+    DateTime localDate = isUtc ? date.toLocal() : date;
+    return formatter.format(localDate);
+  }
+
+  String formatDate(DateTime date) {
+    return DateFormat('yyyy-MM-dd – kk:mm').format(date);
+  }
 
   Widget performanceMetricItem(String title, String value) {
     return Padding(
@@ -433,6 +544,97 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
           Text(value),
         ],
       ),
+    );
+  }
+
+  void _showBacktestDialog(BuildContext context,
+      Timestamp deployStartDateTimestamp, Timestamp deployEndDateTimestamp) {
+    // Convert Timestamp to DateTime and adjust for local timezone
+    DateTime deployStartDate = deployStartDateTimestamp.toDate().toLocal();
+    DateTime deployEndDate = deployEndDateTimestamp.toDate().toLocal();
+
+    // Assuming the backtestStartDate and backtestEndDate are initialized somewhere in your state
+    DateTime backtestStartDate =
+        deployStartDate; // Or some default start date within the allowed range
+    DateTime backtestEndDate =
+        deployEndDate; // Or the deployEndDate if it is before today
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Select Backtest Period',
+              style: GoogleFonts.robotoCondensed(
+                  fontWeight: FontWeight.bold, fontSize: 20)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              // Start Date Picker ListTile
+              ListTile(
+                title: Text('Start Date:',
+                    style: GoogleFonts.robotoCondensed(
+                        fontWeight: FontWeight.bold, fontSize: 17)),
+                subtitle: Text(formatDateWithTimezone(backtestStartDate,
+                    pattern: 'yyyy-MM-dd', isUtc: true)),
+                trailing: Icon(Icons.calendar_today),
+                onTap: () async {
+                  DateTime? pickedStartDate = await showDatePicker(
+                    context: context,
+                    initialDate: backtestStartDate,
+                    firstDate: deployStartDate,
+                    lastDate: backtestEndDate,
+                  );
+                  if (pickedStartDate != null &&
+                      pickedStartDate != backtestStartDate) {
+                    backtestStartDate = pickedStartDate;
+                    // Update your state here
+                  }
+                },
+              ),
+              // End Date Picker ListTile
+              ListTile(
+                title: Text('End Date:',
+                    style: GoogleFonts.robotoCondensed(
+                        fontWeight: FontWeight.bold, fontSize: 17)),
+                subtitle: Text(formatDateWithTimezone(backtestEndDate,
+                    pattern: 'yyyy-MM-dd', isUtc: true)),
+                trailing: Icon(Icons.calendar_today),
+                onTap: () async {
+                  DateTime? pickedEndDate = await showDatePicker(
+                    context: context,
+                    initialDate: backtestEndDate,
+                    firstDate: backtestStartDate,
+                    lastDate: deployEndDate,
+                  );
+                  if (pickedEndDate != null &&
+                      pickedEndDate != backtestEndDate) {
+                    backtestEndDate = pickedEndDate;
+                    // Update your state here
+                  }
+                },
+              ),
+              // Add your help icon button and other UI components as needed
+            ],
+          ),
+          actions: <Widget>[
+            // Cancel button
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            // Confirm button
+            TextButton(
+              child: Text('Backtest Now'),
+              onPressed: () {
+                // TODO: Implement your backtesting logic using backtestStartDate and backtestEndDate
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 }

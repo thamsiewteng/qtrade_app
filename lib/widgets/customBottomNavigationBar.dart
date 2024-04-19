@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:qtrade_app/screen/algorithmPage.dart';
 import 'package:qtrade_app/screen/homePage.dart';
+import 'package:qtrade_app/screen/tradingPage.dart';
 
 import '../screen/strategyPage.dart';
 
@@ -40,6 +41,11 @@ class CustomBottomNavigationBar extends StatelessWidget {
               MaterialPageRoute(builder: (context) => StrategyPage()),
             );
             break;
+          case 3:
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => TradingPage()),
+            );
           // Add other cases for each tab
         }
       },
