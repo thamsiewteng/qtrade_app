@@ -1,12 +1,18 @@
+import 'dart:convert';
+import 'dart:math';
+
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:qtrade_app/screen/deployedAlgoDetailsPage.dart';
 import 'package:qtrade_app/screen/deployedHistoryPage.dart';
 
 import '../widgets/customBottomNavigationBar.dart';
 import 'algorithmPage.dart';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
 
 class StrategyPage extends StatelessWidget {
   final TextEditingController _tickerController = TextEditingController();
@@ -17,13 +23,11 @@ class StrategyPage extends StatelessWidget {
   Widget build(BuildContext context) {
     User? user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      // Handle the case where there is no user logged in
       return Scaffold(
         body: Center(child: Text('No user found')),
       );
     }
 
-    // Get the current user's ID
     final String userId = user.uid;
 
     return Scaffold(
@@ -56,40 +60,99 @@ class StrategyPage extends StatelessWidget {
             left: 16.0,
             top: 16.0,
             right: 16.0,
-            bottom: 120.0, // Enough bottom padding to fill out the space
+            bottom: 120.0,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Recent Deployed Algorithm',
+                'Top Deployed Algorithms',
                 style: GoogleFonts.robotoCondensed(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black),
-              ),
-              SizedBox(height: 10),
-              // Mockup for the Recent Deployed Algorithm
-              Card(
-                elevation: 4,
-                color: Colors.white,
-                child: ListTile(
-                  title: Text('Prophet - AAPL',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('MSE 5.36% RMSE 5.36% MAE 1.57% R² 5.36%'),
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
                 ),
               ),
-              Card(
-                elevation: 4,
-                color: Colors.white,
-                child: ListTile(
-                  title: Text('Prophet - AAPL',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('MSE 5.36% RMSE 5.36% MAE 1.57% R² 5.36%'),
-                ),
-              ),
-              // ... Repeat for other algorithms ...
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection(
+                        'deployed_algo') // Make sure this path is correct
+                    .orderBy('deploy_MSE', descending: false)
+                    .limit(2)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Text('Error: ${snapshot.error}');
+                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return Text('No algorithms found');
+                  }
 
+                  return Column(
+                    children: snapshot.data!.docs.asMap().entries.map((entry) {
+                      int idx = entry.key;
+                      DocumentSnapshot algoDoc = entry.value;
+                      String documentId =
+                          algoDoc.id; // Get the document ID here
+
+                      return Card(
+                        elevation: 4,
+                        color: Colors.white.withOpacity(0.9),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            // Assuming getImageForRank returns an ImageProvider
+                            child: getImageForRank(idx),
+                          ),
+                          title: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                algoDoc['deploy_algoName'], // Algorithm name
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                DateFormat('yyyy-MM-dd h:mma').format(
+                                    algoDoc['deploy_date']
+                                        .toDate()), // Date formatted
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                          trailing: Text(
+                            algoDoc['deploy_stockTicker'], // Stock ticker
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          onTap: () {
+                            // Pass the document ID to the details page
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => DeployedAlgoDetailsPage(
+                                    documentId: documentId),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
               SizedBox(height: 20),
               Text(
                 'Algorithm List',
@@ -119,19 +182,16 @@ class StrategyPage extends StatelessWidget {
                       userDoc!['integrated_algoID'] as List ?? [];
 
                   return Container(
-                    height: 100, // Fixed height container
+                    height: 100,
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
-                      itemCount:
-                          integratedAlgos.length + 1, // +1 for the add button
+                      itemCount: integratedAlgos.length + 1,
                       itemBuilder: (context, index) {
                         if (index < integratedAlgos.length) {
-                          // Check if the reference is a DocumentReference and extract the ID
                           var docID = integratedAlgos[index]
                                   is DocumentReference
                               ? (integratedAlgos[index] as DocumentReference).id
-                              : integratedAlgos[
-                                  index]; // assuming it's already a string ID if not a DocumentReference
+                              : integratedAlgos[index];
 
                           return FutureBuilder<DocumentSnapshot>(
                             future: FirebaseFirestore.instance
@@ -161,7 +221,6 @@ class StrategyPage extends StatelessWidget {
                   );
                 },
               ),
-
               SizedBox(height: 20),
               Text(
                 'Deploy Algorithm',
@@ -177,22 +236,18 @@ class StrategyPage extends StatelessWidget {
         ),
       ),
       bottomNavigationBar: CustomBottomNavigationBar(
-        currentIndex: 2, // Assuming StrategyPage is the third tab
-        onTap: (index) {
-          // Handle bottom navigation tap
-        },
+        currentIndex: 2,
+        onTap: (index) {},
       ),
     );
   }
 
   Widget _buildAlgorithmCircle(String name, BuildContext context) {
-    // Wrap your existing Padding with a GestureDetector to handle taps
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            // Pass the selected algorithm name
             builder: (context) => DeployedHistoryPage(algoName: name),
           ),
         );
@@ -204,8 +259,7 @@ class StrategyPage extends StatelessWidget {
             CircleAvatar(
               radius: 30,
               backgroundColor: Colors.white,
-              child: Image.asset('assets/images/algorithmIcon.png',
-                  width: 40), // Placeholder for actual icon
+              child: Image.asset('assets/images/algorithmIcon.png', width: 40),
             ),
             SizedBox(height: 5),
             Text(
@@ -245,13 +299,13 @@ class StrategyPage extends StatelessWidget {
   }
 
   Widget _buildDeployAlgorithmSection(BuildContext context, String userId) {
-    // Calculate start date constraints based on current date
     DateTime currentDate = DateTime.now();
     DateTime eightYearsAgo = currentDate.subtract(Duration(days: 365 * 8));
     DateTime twelveYearsAgo = currentDate.subtract(Duration(days: 365 * 12));
 
-    // Initialize start date to eight years ago by default
     DateTime selectedStartDate = eightYearsAgo;
+    String selectedStockTicker = '';
+    String selectedAlgorithm = '';
 
     return Padding(
       padding: const EdgeInsets.all(8.0),
@@ -329,7 +383,7 @@ class StrategyPage extends StatelessWidget {
                                 color: Colors.black54)),
                         items: dropdownItems,
                         onChanged: (value) {
-                          // Do something with the selected algorithm
+                          selectedAlgorithm = value!;
                         },
                         icon: Icon(Icons.keyboard_arrow_down),
                       );
@@ -370,6 +424,7 @@ class StrategyPage extends StatelessWidget {
                       }
                     },
                     onSelected: (String selection) {
+                      selectedStockTicker = selection;
                       debugPrint('You just selected $selection');
                     },
                     fieldViewBuilder: (BuildContext context,
@@ -398,8 +453,7 @@ class StrategyPage extends StatelessWidget {
                 },
               ),
               Row(
-                mainAxisAlignment: MainAxisAlignment
-                    .spaceBetween, // Adjust the spacing as needed
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     'Start Date (8-12 years ago)',
@@ -412,10 +466,8 @@ class StrategyPage extends StatelessWidget {
                   IconButton(
                     icon: Icon(Icons.help_outline),
                     onPressed: () => _showInstructions(context),
-                    padding: EdgeInsets
-                        .zero, // This reduces the default padding around the icon
-                    constraints:
-                        BoxConstraints(), // Removes constraints for minimum hit testing size
+                    padding: EdgeInsets.zero,
+                    constraints: BoxConstraints(),
                   ),
                 ],
               ),
@@ -428,7 +480,6 @@ class StrategyPage extends StatelessWidget {
                     lastDate: eightYearsAgo,
                   );
                   if (picked != null) {
-                    // Update the start date if the user picks a valid date
                     selectedStartDate = picked;
                   }
                 },
@@ -455,8 +506,102 @@ class StrategyPage extends StatelessWidget {
               Align(
                 alignment: Alignment.centerRight,
                 child: ElevatedButton(
-                  onPressed: () {
-                    // Handle the deploy action
+                  onPressed: () async {
+                    debugPrint('selectedalgo: $selectedAlgorithm');
+                    debugPrint('selectedticker: $selectedStockTicker');
+                    // Obtain the algoName from the algorithm document using selectedAlgorithm as the document ID
+                    var algoDocument = await FirebaseFirestore.instance
+                        .collection('algorithm')
+                        .doc(selectedAlgorithm)
+                        .get();
+                    var algoName = algoDocument.data()?['algo_name'] ??
+                        'Unknown Algorithm';
+
+                    final url =
+                        'http://10.0.2.2:5000/predict/${selectedAlgorithm}';
+                    final headers = {"Content-Type": "application/json"};
+                    final requestBody = jsonEncode({
+                      "stockSymbol": selectedStockTicker,
+                      "startDate":
+                          DateFormat('yyyy-MM-dd').format(selectedStartDate),
+                    });
+
+                    try {
+                      final response = await http.post(
+                        Uri.parse(url),
+                        headers: headers,
+                        body: requestBody,
+                      );
+                      if (response.statusCode == 200) {
+                        final Map<String, dynamic> responseData =
+                            json.decode(response.body);
+                        final Map<String, dynamic> performanceMetrics =
+                            responseData['performance_metrics'];
+                        final Map<String, dynamic> plotData =
+                            responseData['plot_data'];
+
+                        String plotDataString = json.encode(plotData);
+                        DocumentReference newAlgoRef = await FirebaseFirestore
+                            .instance
+                            .collection('deployed_algo')
+                            .add({
+                          'deploy_algoName': algoName,
+                          'deploy_algoID': selectedAlgorithm,
+                          'deploy_startDate': selectedStartDate,
+                          'deploy_stockTicker': selectedStockTicker,
+                          'deploy_EPS': responseData['eps'],
+                          'deploy_MSE': performanceMetrics['MSE'],
+                          'deploy_RMSE': performanceMetrics['RMSE'],
+                          'deploy_MAE': performanceMetrics['MAE'],
+                          'deploy_R2': performanceMetrics['R2'],
+                          'deploy_MAPE': performanceMetrics['MAPE'],
+                          'deploy_volatility': responseData['volatility'],
+                          'deploy_trendInsight': responseData['trend_insight'],
+                          'deploy_RSI': responseData['rsi'],
+                          'deploy_marketCap': responseData['market_cap'],
+                          'deploy_beta': responseData['beta'],
+                          'deploy_peRatio': responseData['pe_ratio'],
+                          'deploy_graph': plotDataString,
+                          'deploy_date': FieldValue.serverTimestamp(),
+                          'deploy_backtest': [],
+                        });
+
+                        print(
+                            'Response data added to database with ID: ${newAlgoRef.id}');
+
+                        DocumentReference userRef = FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(userId);
+
+                        FirebaseFirestore.instance
+                            .runTransaction((transaction) async {
+                          DocumentSnapshot userSnapshot =
+                              await transaction.get(userRef);
+                          List<dynamic> deployedAlgos =
+                              userSnapshot['deploy_algoID'] ?? [];
+
+                          DocumentReference deployedAlgoRef = FirebaseFirestore
+                              .instance
+                              .collection('deployed_algo')
+                              .doc(newAlgoRef.id);
+
+                          deployedAlgos.add(deployedAlgoRef);
+
+                          transaction.update(
+                              userRef, {'deploy_algoID': deployedAlgos});
+                        }).then((result) {
+                          print(
+                              'Added deployed algorithm reference to user document');
+                        }).catchError((error) {
+                          print('Error updating user document: $error');
+                        });
+                      } else {
+                        print(
+                            'Request failed with status: ${response.statusCode}.');
+                      }
+                    } catch (e) {
+                      print('An error occurred: $e');
+                    }
                   },
                   child: Padding(
                     padding: EdgeInsets.symmetric(vertical: 10),
@@ -519,5 +664,18 @@ class StrategyPage extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+Image getImageForRank(int rank) {
+  switch (rank) {
+    case 0:
+      return Image.asset('assets/images/top1.png'); // Icon for the 1st place
+    case 1:
+      return Image.asset('assets/images/top2.png'); // Icon for the 2nd place
+    case 2:
+      return Image.asset('assets/images/top3.png'); // Icon for the 3rd place
+    default:
+      return Image.asset('assets/images/algorithmIcon.png'); // Default icon
   }
 }

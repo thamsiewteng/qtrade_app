@@ -5,16 +5,30 @@ import 'package:fl_chart/fl_chart.dart';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
+import 'package:qtrade_app/screen/backtestDetailsPage.dart';
 
 class DeployedAlgoDetailsPage extends StatelessWidget {
   final String documentId;
 
   DeployedAlgoDetailsPage({required this.documentId});
 
-  Future<List<Map<String, dynamic>>> fetchBacktestHistory() async {
+  Future<List<Map<String, dynamic>>> fetchBacktestHistory(
+      List<DocumentReference> backtestReferences) async {
     FirebaseFirestore firestore = FirebaseFirestore.instance;
-    var backtestCollection = await firestore.collection('backtest_algo').get();
-    return backtestCollection.docs.map((doc) => doc.data()).toList();
+    List<Map<String, dynamic>> backtestData = [];
+
+    // You should ensure that backtestReferences is not null before iterating
+    if (backtestReferences != null) {
+      for (var ref in backtestReferences) {
+        var doc = await ref.get();
+        if (doc.data() != null) {
+          backtestData.add(doc.data() as Map<String, dynamic>);
+        }
+      }
+    }
+
+    return backtestData;
   }
 
   @override
@@ -27,7 +41,7 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
         backgroundColor: Color.fromARGB(255, 188, 208, 225),
         elevation: 0,
         title: Text(
-          'Details',
+          'Deploy Result',
           style: GoogleFonts.robotoCondensed(
             color: Colors.black,
             fontSize: 30,
@@ -59,16 +73,27 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
               return Center(child: Text('Document does not exist'));
             }
 
+            var backtestdata = snapshot.data!.data() as Map<String, dynamic>;
+            List<DocumentReference> backtestRefs = (backtestdata[
+                    'deploy_backtest'] as List)
+                .map((item) => item as DocumentReference)
+                .toList(); // Make sure to check for null before this operation.
+
             var data = snapshot.data!.data() as Map<String, dynamic>;
             String graphDataString = data['deploy_graph'];
-            Map<String, dynamic> graphData = jsonDecode(graphDataString);
+            Map<String, dynamic> graphData =
+                graphDataString != null ? jsonDecode(graphDataString) : {};
 
             List<String> dates = List<String>.from(graphData['dates']);
 
-            List<double> actual = List<double>.from(
-                graphData['actual'].map((x) => x.toDouble()).toList());
-            List<double> predicted = List<double>.from(
-                graphData['predicted'].map((x) => x.toDouble()).toList());
+            List<double> actual = graphData['actual'] != null
+                ? List<double>.from(
+                    graphData['actual'].map((x) => x.toDouble()).toList())
+                : [];
+            List<double> predicted = graphData['predicted'] != null
+                ? List<double>.from(
+                    graphData['predicted'].map((x) => x.toDouble()).toList())
+                : [];
 
             List<FlSpot> actualDataPoints = List.generate(actual.length,
                 (index) => FlSpot(index.toDouble(), actual[index]));
@@ -79,7 +104,6 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
             final maxY = actual.reduce(math.max) * 1.1;
             final pointsPerMonth = 30; // Adjust this value as needed
 
-// Before returning SingleChildScrollView, calculate the scaling for the graph width
             final screenWidth = MediaQuery.of(context).size.width;
             final graphWidth = screenWidth *
                 2; // Adjust the scaling factor as needed to fit the graph
@@ -88,15 +112,15 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
             final maxYWithPadding = maxY + topPadding;
 
             final String deployName = data['deploy_algoName'];
+            final String deployAlgoID = data['deploy_algoID'];
             final String deployTicker = data['deploy_stockTicker'];
-            // Let's assume 'deploy_date' is the field where the Timestamp is stored
 
             DateTime deployDate = (data['deploy_date'] as Timestamp).toDate();
 
             // Format the dates
 
             String formattedDeployedDate = formatDateWithTimezone(deployDate,
-                pattern: 'dd/MM/yyyy HH:mm:ss', isUtc: false);
+                pattern: 'dd/MM/yyyy HH:mm:ss', isUtc: true);
 
             return SingleChildScrollView(
               child: Column(
@@ -106,7 +130,7 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(left: 16.0),
                     child: Text(
-                      'Test Set: Actual vs Predicted',
+                      'Actual vs Predicted',
                       style: GoogleFonts.robotoCondensed(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -123,10 +147,8 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
                         aspectRatio: 2,
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors
-                                .white, // Set the background color for the chart area
-                            borderRadius: BorderRadius.circular(
-                                15), // Optional for rounded corners
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(15),
                           ),
                           padding: const EdgeInsets.all(16),
                           child: LineChart(
@@ -136,7 +158,7 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
                                 topTitles: AxisTitles(
                                   sideTitles: SideTitles(
                                     showTitles: false,
-                                  ), // This will hide the top titles
+                                  ),
                                 ),
                                 leftTitles: AxisTitles(
                                   sideTitles: SideTitles(
@@ -243,26 +265,6 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
                                               : Colors.white,
                                           fontWeight: FontWeight.bold,
                                         ),
-                                        // children: <TextSpan>[
-                                        //   if (isTouchedActual) // Add the circle only for the actual value
-                                        //     TextSpan(
-                                        //       text: ' ● ',
-                                        //       style: TextStyle(
-                                        //         fontSize: 14,
-                                        //         color: Colors
-                                        //             .blue, // Circle color for actual value
-                                        //       ),
-                                        //     ),
-                                        //   if (!isTouchedActual) // Add the circle only for the predicted value
-                                        //     TextSpan(
-                                        //       text: ' ● ',
-                                        //       style: TextStyle(
-                                        //         fontSize: 14,
-                                        //         color: Colors
-                                        //             .orange, // Circle color for predicted value
-                                        //       ),
-                                        //     ),
-                                        // ],
                                       );
                                     }).toList();
                                   },
@@ -302,25 +304,6 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
 
                   SizedBox(height: 20),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text('Deployed Algorithm',
-                            style: GoogleFonts.robotoCondensed(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            )),
-                        Text('Algorithm Name: $deployName',
-                            style: GoogleFonts.robotoCondensed()),
-                        Text('Ticker: $deployTicker',
-                            style: GoogleFonts.robotoCondensed()),
-                        Text('Deploy Date: $formattedDeployedDate',
-                            style: GoogleFonts.robotoCondensed()),
-                      ],
-                    ),
-                  ),
-                  Padding(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16.0, vertical: 8.0),
                     child: Card(
@@ -331,21 +314,72 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // _buildPerformanceMetricsCard(data),
+                            Text('Deployed Algorithm',
+                                style: GoogleFonts.robotoCondensed(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                )),
+                            Text('Algorithm Name: $deployName',
+                                style: GoogleFonts.robotoCondensed(
+                                  fontSize: 16,
+                                )),
+                            Text('Ticker: $deployTicker',
+                                style: GoogleFonts.robotoCondensed(
+                                  fontSize: 16,
+                                )),
+                            Text('Deploy Date: $formattedDeployedDate',
+                                style: GoogleFonts.robotoCondensed(
+                                  fontSize: 16,
+                                )),
+                            SizedBox(height: 20),
                             Text('Performance Metrics',
                                 style: GoogleFonts.robotoCondensed(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 )),
-                            SizedBox(height: 10),
-                            performanceMetricItem(
-                                'MAE: ', data['deploy_MAE'].toStringAsFixed(2)),
-                            performanceMetricItem(
-                                'MSE: ', data['deploy_MSE'].toStringAsFixed(2)),
-                            performanceMetricItem(
-                                'R²: ', data['deploy_R2'].toStringAsFixed(2)),
-                            performanceMetricItem('MAPE: ',
-                                data['deploy_MAPE'].toStringAsFixed(2)),
+                            SizedBox(
+                                height: 10), // Spacing between text and grid
+                            GridView.count(
+                              shrinkWrap: true,
+                              physics:
+                                  NeverScrollableScrollPhysics(), // to disable GridView's scrolling
+                              crossAxisCount:
+                                  2, // Creates a grid with 2 columns
+                              childAspectRatio: 3 /
+                                  2, // Adjust this value as needed, 3 is width, 1 is height
+                              crossAxisSpacing:
+                                  10, // Spacing between the cards horizontally
+                              mainAxisSpacing:
+                                  10, // Spacing between the cards vertically
+
+                              children: <Widget>[
+                                PerformanceMetricCard(
+                                  title: 'MAE(Mean Absolute Error)',
+                                  value: data['deploy_MAE'],
+                                  lowThreshold: 5,
+                                  highThreshold: 10,
+                                ),
+                                PerformanceMetricCard(
+                                  title: 'MSE(Mean Squared Error)',
+                                  value: data['deploy_MSE'],
+                                  lowThreshold: 10,
+                                  highThreshold: 40,
+                                ),
+                                PerformanceMetricCard(
+                                  title: 'R² (R-Squared)',
+                                  value: data['deploy_R2'],
+                                  lowThreshold: 0.7,
+                                  highThreshold: 0.9,
+                                ),
+                                PerformanceMetricCard(
+                                  title:
+                                      'MAPE (Mean Absolute Percentage Error)',
+                                  value: data['deploy_MAPE'],
+                                  lowThreshold: 5,
+                                  highThreshold: 15,
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                       ),
@@ -360,36 +394,70 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
                       elevation: 5,
                       shadowColor: Colors.grey.withOpacity(0.5),
                       child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Analysis',
-                                style: GoogleFonts.robotoCondensed(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                )),
-                            SizedBox(height: 10),
-                            // ... Add additional metrics here ...
-                            performanceMetricItem(
-                                'EPS: ', data['deploy_EPS'].toString()),
-                            performanceMetricItem(
-                                'Beta: ', data['deploy_beta'].toString()),
-                            performanceMetricItem('PE Ratio: ',
-                                data['deploy_peRatio'].toString()),
-                            performanceMetricItem('Market Cap: ',
-                                formatMarketCap(data['deploy_marketCap'])),
-
-                            performanceMetricItem('Volatility: ',
-                                "${(double.parse(data['deploy_stockVolatility']) * 100).toStringAsFixed(2)}%"),
-                            performanceMetricItem(
-                                'Trend Insight: ', data['deploy_trendInsight']),
-                          ],
-                        ),
-                      ),
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Analysis Metrics',
+                                  style: GoogleFonts.robotoCondensed(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  )),
+                              SizedBox(height: 10),
+                              AnalysisMetricCard(
+                                title: 'EPS',
+                                value: data['deploy_EPS'] ?? 0,
+                                goodThreshold: 2, // EPS greater than 2 is good
+                                badThreshold: 1, // EPS less than 1 is bad
+                              ),
+                              AnalysisMetricCard(
+                                title: 'Beta',
+                                value: data['deploy_beta'] ?? 0,
+                                goodThreshold:
+                                    1, // Beta less than 1 is good (less volatility)
+                                badThreshold:
+                                    2, // Beta greater than 2 is bad (more volatility)
+                              ),
+                              AnalysisMetricCard(
+                                title: 'PE Ratio',
+                                value: data['deploy_peRatio'] ?? 0,
+                                goodThreshold:
+                                    15, // PE Ratio less than 15 is good
+                                badThreshold:
+                                    25, // PE Ratio greater than 25 is bad
+                              ),
+                              AnalysisMetricCard(
+                                title: 'Market Cap',
+                                value:
+                                    formatMarketCap(data['deploy_marketCap']) ??
+                                        0,
+                                goodThreshold:
+                                    200e9, // Market Cap greater than 200 billion is good
+                                badThreshold:
+                                    10e9, // Market Cap less than 10 billion is bad
+                              ),
+                              AnalysisMetricCard(
+                                title: 'Volatility',
+                                value: data['deploy_volatility'] ?? 0,
+                                goodThreshold:
+                                    0.5, // Volatility less than 0.5% is good
+                                badThreshold:
+                                    2, // Volatility greater than 2% is bad
+                              ),
+                              AnalysisMetricCard(
+                                title: 'Trend Insight',
+                                value: data['deploy_trendInsight'] ?? '',
+                                goodThreshold:
+                                    'Uptrend', // Trend insight of 'Uptrend' is good
+                                badThreshold:
+                                    'Downtrend', // Trend insight of 'Downtrend' is bad
+                              ),
+                              // ... Add more AnalysisMetricCard widgets if needed ...
+                            ],
+                          )),
                     ),
                   ),
-                  // Backtest history title
+                  //Backtest history title
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
@@ -402,34 +470,36 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        // Add your FutureBuilder or existing logic here for backtest history
-                        // ...
-                        // Add backtest button
                       ],
                     ),
                   ),
-                  // FutureBuilder to display backtest history
                   FutureBuilder<List<Map<String, dynamic>>>(
-                    future: fetchBacktestHistory(),
-                    builder: (context, snapshot) {
+                    future: fetchBacktestHistory(backtestRefs),
+                    builder: (context,
+                        AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return Center(child: CircularProgressIndicator());
                       } else if (snapshot.hasError) {
-                        return Center(
-                            child: Text(
-                                'Error fetching backtest history: ${snapshot.error}'));
-                      } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return Center(child: Text('Error: ${snapshot.error}'));
+                      } else if (!snapshot.hasData) {
                         return Center(
                             child: Text('No backtest data available'));
                       } else {
-                        return Column(
-                          children: snapshot.data!
-                              .asMap()
-                              .entries
-                              .map((entry) => buildBacktestCard(
-                                  context, entry.value, entry.key))
-                              .toList(),
-                        );
+                        List<Map<String, dynamic>> backtests =
+                            snapshot.data ?? [];
+                        if (backtests.isEmpty) {
+                          return Center(
+                              child: Text('No backtest data available'));
+                        } else {
+                          return Column(
+                            children: backtests
+                                .asMap()
+                                .entries
+                                .map((entry) => buildBacktestCard(context,
+                                    entry.value, entry.key, deployTicker))
+                                .toList(),
+                          );
+                        }
                       }
                     },
                   ),
@@ -442,7 +512,7 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
                       child: ElevatedButton(
                         onPressed: () {
                           _showBacktestDialog(context, data['deploy_startDate'],
-                              data['deploy_date']);
+                              data['deploy_date'], deployTicker, deployAlgoID);
                         },
                         child: Padding(
                           padding: EdgeInsets.symmetric(vertical: 10),
@@ -491,33 +561,34 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
     );
   }
 
-  Widget buildBacktestCard(
-      BuildContext context, Map<String, dynamic> backtestData, int index) {
-    // Extract dates from Timestamps
+  Widget buildBacktestCard(BuildContext context,
+      Map<String, dynamic> backtestData, int index, String stockTicker) {
     DateTime btDate = (backtestData['bt_date'] as Timestamp).toDate();
-    DateTime btStartDate = (backtestData['bt_startDate'] as Timestamp).toDate();
-    DateTime btEndDate = (backtestData['bt_endDate'] as Timestamp).toDate();
+    DateTime btStartDate =
+        DateTime.tryParse(backtestData['bt_startDate']) ?? DateTime.now();
+    DateTime btEndDate =
+        DateTime.tryParse(backtestData['bt_endDate']) ?? DateTime.now();
 
     // Format the dates
+    String formattedBtDate = DateFormat('dd/MM/yyyy').format(btDate);
+    String formattedStartDate = DateFormat('dd/MM/yyyy').format(btStartDate);
+    String formattedEndDate = DateFormat('dd/MM/yyyy').format(btEndDate);
 
-    String formattedBtDate =
-        formatDateWithTimezone(btDate, pattern: 'dd/MM/yyyy', isUtc: true);
-    // Use the helper function to format the start and end date
-    String formattedStartDate =
-        formatDateWithTimezone(btStartDate, pattern: 'dd/MM/yyyy', isUtc: true);
-    String formattedEndDate =
-        formatDateWithTimezone(btEndDate, pattern: 'dd/MM/yyyy', isUtc: true);
-
-    // Use the index to label the backtest
-    // String backtestLabel = 'Backtest ${index + 1}';
-
-    return Card(
-      margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: ListTile(
-        title: Text('Backtest ${index + 1}',
-            style: TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text('Period: $formattedStartDate - $formattedEndDate'),
-        trailing: Text(formattedBtDate),
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (context) => BacktestDetailsPage(
+              backtestData: backtestData, stockTicker: stockTicker),
+        ));
+      },
+      child: Card(
+        margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: ListTile(
+          title: Text('Backtest ${index + 1}',
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          subtitle: Text('Period: $formattedStartDate - $formattedEndDate'),
+          trailing: Text(formattedBtDate),
+        ),
       ),
     );
   }
@@ -525,7 +596,6 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
   String formatDateWithTimezone(DateTime date,
       {String? pattern, bool isUtc = false}) {
     DateFormat formatter = DateFormat(pattern ?? 'dd/MM/yyyy HH:mm:ss');
-    // If the date is in UTC, convert it to the local time
     DateTime localDate = isUtc ? date.toLocal() : date;
     return formatter.format(localDate);
   }
@@ -534,21 +604,12 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
     return DateFormat('yyyy-MM-dd – kk:mm').format(date);
   }
 
-  Widget performanceMetricItem(String title, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title, style: TextStyle(fontWeight: FontWeight.bold)),
-          Text(value),
-        ],
-      ),
-    );
-  }
-
-  void _showBacktestDialog(BuildContext context,
-      Timestamp deployStartDateTimestamp, Timestamp deployEndDateTimestamp) {
+  void _showBacktestDialog(
+      BuildContext context,
+      Timestamp deployStartDateTimestamp,
+      Timestamp deployEndDateTimestamp,
+      String stockTicker,
+      String deployAlgoID) {
     // Convert Timestamp to DateTime and adjust for local timezone
     DateTime deployStartDate = deployStartDateTimestamp.toDate().toLocal();
     DateTime deployEndDate = deployEndDateTimestamp.toDate().toLocal();
@@ -627,9 +688,90 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
             // Confirm button
             TextButton(
               child: Text('Backtest Now'),
-              onPressed: () {
-                // TODO: Implement your backtesting logic using backtestStartDate and backtestEndDate
-                Navigator.of(context).pop();
+              onPressed: () async {
+                debugPrint('selectedalgo: $deployAlgoID');
+
+                debugPrint('stockTicker: $stockTicker');
+                debugPrint('startDate: $deployStartDate');
+                debugPrint('backtestStartDate: $backtestStartDate');
+                debugPrint('backtestEndDate: $backtestEndDate');
+
+                var url = Uri.parse(
+                    'http://10.0.2.2:5000/predict/${deployAlgoID}'); // Replace with your actual backend URL
+                var headers = {'Content-Type': 'application/json'};
+                var requestBody = jsonEncode({
+                  'stockSymbol':
+                      stockTicker, // Assuming the stock symbol is always 'AMZN'
+                  'startDate': formatDateWithTimezone(deployStartDate,
+                      pattern: 'yyyy-MM-dd',
+                      isUtc:
+                          false), // This should probably be dynamic but is hardcoded for now
+                  'backtestStartDate': formatDateWithTimezone(backtestStartDate,
+                      pattern: 'yyyy-MM-dd', isUtc: false),
+                  'backtestEndDate': formatDateWithTimezone(backtestEndDate,
+                      pattern: 'yyyy-MM-dd', isUtc: false),
+                });
+
+                try {
+                  var response =
+                      await http.post(url, headers: headers, body: requestBody);
+                  if (response.statusCode == 200) {
+                    final Map<String, dynamic> responseData =
+                        json.decode(response.body);
+
+                    DocumentReference newAlgoRef = await FirebaseFirestore
+                        .instance
+                        .collection('backtest_algo')
+                        .add({
+                      'bt_startDate': formatDateWithTimezone(backtestStartDate,
+                          pattern: 'yyyy-MM-dd', isUtc: false),
+                      'bt_endDate': formatDateWithTimezone(backtestEndDate,
+                          pattern: 'yyyy-MM-dd', isUtc: false),
+                      'bt_annualReturn': responseData["annual_return"],
+                      'bt_totalTrade': responseData["total_trades"],
+                      'bt_winRate': responseData["win_rate"],
+                      'bt_lossRate': responseData["loss_rate"],
+                      'bt_drawdown': responseData["drawdown"],
+                      'bt_sharpeRatio': responseData["sharpe_ratio"],
+                      'bt_finalPortfolio':
+                          responseData["final_portfolio_value"],
+                      'bt_date': FieldValue.serverTimestamp(),
+                    });
+
+                    print(
+                        'Response data added to database with ID: ${newAlgoRef.id}');
+
+                    // Get the ID of the newly added backtest result
+                    String backtestResultId = newAlgoRef.id;
+                    print(
+                        'New backtest result added with ID: $backtestResultId');
+
+                    // Now, update the deployed_algo document with the new backtest reference
+                    DocumentReference backtestResultRef = FirebaseFirestore
+                        .instance
+                        .collection('backtest_algo')
+                        .doc(backtestResultId);
+
+// Now, update the deployed_algo document with the new backtest reference
+                    var deployedAlgoRef = FirebaseFirestore.instance
+                        .collection('deployed_algo')
+                        .doc(documentId);
+                    await deployedAlgoRef.update({
+                      'deploy_backtest':
+                          FieldValue.arrayUnion([backtestResultRef])
+                    });
+
+                    print('deploy_backtest field updated with new reference.');
+                  } else {
+                    print(
+                        'Request failed with status: ${response.statusCode}.');
+                  }
+                } catch (e) {
+                  print('An error occurred: $e');
+                }
+
+                Navigator.of(context)
+                    .pop(); // Close the dialog after sending the request
               },
             ),
           ],
@@ -719,6 +861,119 @@ class Indicator extends StatelessWidget {
             style: TextStyle(
                 fontSize: 16, fontWeight: FontWeight.bold, color: textColor)),
       ],
+    );
+  }
+}
+
+class PerformanceMetricCard extends StatelessWidget {
+  final String title;
+  final double value;
+  final double lowThreshold;
+  final double highThreshold;
+
+  PerformanceMetricCard({
+    required this.title,
+    required this.value,
+    required this.lowThreshold,
+    required this.highThreshold,
+  });
+
+  Color _determineColor() {
+    if (value <= lowThreshold) {
+      return Color.fromARGB(255, 180, 228, 166);
+    } else if (value > highThreshold) {
+      return Color.fromARGB(255, 242, 184, 184);
+    } else {
+      return Color.fromARGB(255, 239, 242, 184);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: _determineColor(),
+      child: Padding(
+        padding: const EdgeInsets.all(8.0), // Adjust the padding as needed
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment
+              .center, // Centers the children widgets vertically
+          crossAxisAlignment: CrossAxisAlignment
+              .start, // Aligns the children widgets at the start horizontally
+          children: [
+            Text(title,
+                style: GoogleFonts.robotoCondensed(
+                    fontSize: 14, fontWeight: FontWeight.bold)),
+            Expanded(
+              child: Center(
+                // This will center the value text in the remaining space
+                child: Text('${value.toStringAsFixed(2)}%',
+                    style: GoogleFonts.robotoCondensed(
+                        fontSize: 22, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class AnalysisMetricCard<T> extends StatelessWidget {
+  final String title;
+  final T value;
+  final T goodThreshold;
+  final T badThreshold;
+
+  AnalysisMetricCard({
+    required this.title,
+    required this.value,
+    required this.goodThreshold,
+    required this.badThreshold,
+  });
+
+  Color _determineColor() {
+    // Handle String values
+    if (value is String) {
+      return value == goodThreshold
+          ? Color.fromARGB(255, 180, 228, 166)
+          : (value == badThreshold
+              ? Color.fromARGB(255, 242, 184, 184)
+              : Color.fromARGB(255, 239, 242, 184));
+    }
+    // Handle numeric values
+    if (value is num) {
+      num numValue = value as num;
+      num numGoodThreshold = goodThreshold as num;
+      num numBadThreshold = badThreshold as num;
+      if (numValue <= numGoodThreshold) {
+        return Color.fromARGB(255, 180, 228, 166);
+      } else if (numValue >= numBadThreshold) {
+        return Color.fromARGB(255, 242, 184, 184);
+      }
+    }
+    return Color.fromARGB(255, 239, 242, 184);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Format the display value based on the type
+    String displayValue;
+    if (value is num) {
+      // If value is a number, format to two decimal places
+      displayValue = (value as num).toStringAsFixed(3);
+    } else {
+      // Otherwise, call toString (for non-numeric values)
+      displayValue = value.toString();
+    }
+    return Card(
+      color: _determineColor(),
+      child: ListTile(
+        title: Text(title,
+            style: GoogleFonts.robotoCondensed(
+                fontSize: 16, fontWeight: FontWeight.bold)),
+        trailing: Text(displayValue,
+            style: GoogleFonts.robotoCondensed(fontSize: 18)),
+      ),
     );
   }
 }
