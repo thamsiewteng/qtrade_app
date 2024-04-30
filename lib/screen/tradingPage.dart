@@ -1,12 +1,117 @@
+import 'dart:convert';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 import 'package:qtrade_app/screen/s&p500TradingPage.dart';
 import '../widgets/customBottomNavigationBar.dart';
+import 'package:http/http.dart' as http;
 
-class TradingPage extends StatelessWidget {
+class TradingPage extends StatefulWidget {
+  @override
+  _TradingPageState createState() => _TradingPageState();
+}
+
+class _TradingPageState extends State<TradingPage> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    tz.initializeTimeZones();
+    checkAndExecuteTransactions(context);
+  }
+
+  bool isUSEquityMarketOpen() {
+    tz.setLocalLocation(tz.getLocation('America/New_York'));
+
+    var now = tz.TZDateTime.now(tz.local);
+    var marketOpen =
+        tz.TZDateTime(tz.local, now.year, now.month, now.day, 9, 30);
+    var marketClose =
+        tz.TZDateTime(tz.local, now.year, now.month, now.day, 16, 0);
+
+    return now.weekday <= 5 &&
+        now.isAfter(marketOpen) &&
+        now.isBefore(marketClose);
+  }
+
+  Future<double> getCurrentMarketPrice(String tickerSymbol) async {
+    final url = Uri.parse('http://10.0.2.2:5000/detailed_stock_info');
+    final response = await http.post(url,
+        body: jsonEncode({'ticker': tickerSymbol}),
+        headers: {'Content-Type': 'application/json'});
+    if (response.statusCode == 200) {
+      var data = jsonDecode(response.body);
+      return double.tryParse(data['currentClose'].toString()) ?? 0.0;
+    } else {
+      throw Exception('Failed to load stock data');
+    }
+  }
+
+  Future<void> checkAndExecuteTransactions(BuildContext context) async {
+    print("jj");
+    print(isUSEquityMarketOpen());
+    if (!isUSEquityMarketOpen()) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Market is not open")));
+      return;
+    }
+
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    var userRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+    var userData = await userRef.get();
+    List<dynamic> transactionIds =
+        userData.data()?['paperTrading_transactionID'] ?? [];
+
+    for (var transactionId in transactionIds) {
+      var transactionRef = FirebaseFirestore.instance
+          .collection('paper_trading_transaction')
+          .doc(transactionId);
+      var transaction = await transactionRef.get();
+      if (transaction.exists && transaction['pt_orderStatus'] == 'pending') {
+        double currentPrice =
+            await getCurrentMarketPrice(transaction['pt_stockSymbol']);
+        if (transaction['pt_orderType'] == 'Market Order' ||
+            (transaction['pt_orderType'] == 'LMT Order' &&
+                currentPrice <= transaction['pt_pricePerShare'])) {
+          await executeTransaction(
+              transactionRef,
+              transaction.data() as Map<String, dynamic>,
+              userRef,
+              currentPrice);
+        }
+      }
+    }
+  }
+
+  Future<void> executeTransaction(
+      DocumentReference transactionRef,
+      Map<String, dynamic> transaction,
+      DocumentReference userRef,
+      double executedPrice) async {
+    await transactionRef.update(
+        {'pt_orderStatus': 'executed', 'pt_executedPrice': executedPrice});
+
+    // Append to user's holding shares
+    Map<String, dynamic> newHolding = {
+      'hs_buyInPrice': executedPrice,
+      'hs_purchaseDate': DateFormat('yyyy-MM-dd').format(DateTime.now()),
+      'hs_quantity': transaction['pt_quantity'],
+      'hs_tickerSymbol': transaction['pt_stockSymbol']
+    };
+
+    await userRef.update({
+      'holding_shares': FieldValue.arrayUnion([newHolding])
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     User? user = FirebaseAuth.instance.currentUser;
@@ -98,9 +203,8 @@ class TradingPage extends StatelessWidget {
                             },
                             child: Text('Invest now'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  Color(0xFF0D0828), // Background color
-                              foregroundColor: Colors.white, // Text color
+                              backgroundColor: Color(0xFF0D0828),
+                              foregroundColor: Colors.white,
                             ),
                           ),
                         ],
@@ -114,7 +218,7 @@ class TradingPage extends StatelessWidget {
         ),
       ),
       bottomNavigationBar: CustomBottomNavigationBar(
-        currentIndex: 3, // Assuming AlgorithmPage is the second tab
+        currentIndex: 3,
         onTap: (index) {},
       ),
     );

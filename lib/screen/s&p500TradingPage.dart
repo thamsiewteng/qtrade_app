@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:qtrade_app/screen/stockTradingPage.dart';
 import 'package:qtrade_app/widgets/customBottomNavigationBar.dart';
 
 class SP500TradingPage extends StatefulWidget {
@@ -36,7 +37,7 @@ class _SP500TradingPageState extends State<SP500TradingPage> {
     var collection = FirebaseFirestore.instance.collection('s&p500');
     var tickersSnapshot = await collection.doc('tickers').get();
     if (tickersSnapshot.exists && tickersSnapshot.data() != null) {
-      allTickers = List.from(tickersSnapshot.data()!['tickers']);
+      allTickers = List.from(tickersSnapshot.data()!['symbols']);
       return allTickers;
     } else {
       throw Exception('Failed to load tickers');
@@ -88,16 +89,43 @@ class _SP500TradingPageState extends State<SP500TradingPage> {
                   return const Iterable<String>.empty();
                 } else {
                   var searchText = textEditingValue.text.toLowerCase();
-                  return allTickers
-                      .where((ticker) =>
-                          ticker.toLowerCase().startsWith(searchText))
-                      .followedBy(allCompanyNames.where(
-                          (name) => name.toLowerCase().startsWith(searchText)));
+                  return allCompanyNames.where((allCompanyNames) =>
+                      allCompanyNames.toLowerCase().startsWith(searchText));
+                  // .followedBy(allCompanyNames.where(
+                  //     (name) => name.toLowerCase().startsWith(searchText)));
                 }
               },
               onSelected: (String selection) {
                 debugPrint('You selected: $selection');
-                // Handle the user selection
+
+                // Make sure the lists are populated correctly
+                debugPrint('All company names: $allCompanyNames');
+                debugPrint('All tickers: $allTickers');
+
+                // Find the index using case-insensitive comparison, trimming whitespace
+                int index = allCompanyNames.indexWhere((name) =>
+                    name.trim().toLowerCase() ==
+                    selection.trim().toLowerCase());
+
+                // Use debugPrint to check if the index is found or not
+                if (index != -1) {
+                  debugPrint('Index found: $index');
+                  String tickerSymbol = allTickers[index];
+                  debugPrint(
+                      'Ticker symbol for selected company is: $tickerSymbol');
+
+                  // Navigate to the StockTradingPage with the ticker symbol
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          StockTradingPage(tickerSymbol: tickerSymbol),
+                    ),
+                  );
+                } else {
+                  debugPrint(
+                      'Index not found for the company name: $selection');
+                }
               },
               fieldViewBuilder: (
                 BuildContext context,
@@ -161,67 +189,81 @@ class _SP500TradingPageState extends State<SP500TradingPage> {
                             ? 'assets/images/trend_up.png' // Replace with your asset image for an upward trend
                             : 'assets/images/trend_down.png'; // Replace with your asset image for a downward trend
 
-                        return Card(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18.0),
-                          ),
-                          elevation: 4.0,
-                          margin:
-                              EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16.0, vertical: 10.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                CircleAvatar(
-                                  backgroundColor: Colors.grey[300],
-                                ),
-                                SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        stock.companyName,
-                                        style: GoogleFonts.robotoCondensed(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
+                        return GestureDetector(
+                          onTap: () {
+                            debugPrint('filteredStocks[index].ticker');
+                            debugPrint(filteredStocks[index].ticker);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => StockTradingPage(
+                                    tickerSymbol: filteredStocks[index].ticker),
+                              ),
+                            );
+                          },
+                          child: Card(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18.0),
+                            ),
+                            elevation: 4.0,
+                            margin: EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16.0, vertical: 10.0),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  CircleAvatar(
+                                    backgroundColor: Colors.grey[300],
                                   ),
-                                ),
-                                Image.asset(
-                                  trendImage,
-                                  height: 20.0, // Set the image size
-                                ),
-                                SizedBox(width: 10),
-                                RichText(
-                                  textAlign: TextAlign.right,
-                                  text: TextSpan(
-                                    children: [
-                                      TextSpan(
-                                        text:
-                                            '\$${stock.currentPrice.toStringAsFixed(2)}\n',
-                                        style: GoogleFonts.robotoCondensed(
-                                          color: Colors.black,
-                                          fontWeight: FontWeight.bold,
+                                  SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          stock.companyName,
+                                          style: GoogleFonts.robotoCondensed(
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
-                                      ),
-                                      TextSpan(
-                                        text:
-                                            '${stock.changePercent >= 0 ? "+" : ""}${stock.changePercent.toStringAsFixed(2)}%',
-                                        style: GoogleFonts.robotoCondensed(
-                                          color: stock.changePercent >= 0
-                                              ? Colors.green
-                                              : Colors.red,
-                                        ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ],
+                                  Image.asset(
+                                    trendImage,
+                                    height: 20.0, // Set the image size
+                                  ),
+                                  SizedBox(width: 10),
+                                  RichText(
+                                    textAlign: TextAlign.right,
+                                    text: TextSpan(
+                                      children: [
+                                        TextSpan(
+                                          text:
+                                              '\$${stock.currentPrice.toStringAsFixed(2)}\n',
+                                          style: GoogleFonts.robotoCondensed(
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        TextSpan(
+                                          text:
+                                              '${stock.changePercent >= 0 ? "+" : ""}${stock.changePercent.toStringAsFixed(2)}%',
+                                          style: GoogleFonts.robotoCondensed(
+                                            color: stock.changePercent >= 0
+                                                ? Colors.green
+                                                : Colors.red,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         );
