@@ -46,6 +46,7 @@ dependencies:
   fl_chart: ^0.67.0
   syncfusion_flutter_charts: ^25.1.41+1
   timezone: ^0.9.3
+  image_picker: ^1.1.1
 
 
 dev_dependencies:

@@ -98,7 +98,7 @@ class DeployedHistoryPage extends StatelessWidget {
                         ),
                       ),
                       subtitle: Text(
-                        formatter.format(date),
+                        formatter.format(date.add(timeZoneOffset)),
                         style: GoogleFonts.robotoCondensed(
                           color: Colors.black54,
                         ),

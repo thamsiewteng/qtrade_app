@@ -36,7 +36,6 @@ class CandlestickChart extends StatelessWidget {
     double yAxisMinimum = candles.map((candle) => candle.low).reduce(min);
     double yAxisMaximum = candles.map((candle) => candle.high).reduce(max);
 
-    // Calculate the padding for the y-axis so that the candlesticks are not squeezed
     double yAxisPadding = (yAxisMaximum - yAxisMinimum) * 0.1;
     yAxisMinimum -= yAxisPadding;
     yAxisMaximum += yAxisPadding;
@@ -62,8 +61,8 @@ class CandlestickChart extends StatelessWidget {
         xAxisDateFormat = DateFormat("HH:mm");
     }
     return Container(
-      margin: EdgeInsets.all(10), // This adds some margin around the chart
-      padding: EdgeInsets.symmetric(vertical: 5), // Adjust vertical padding
+      margin: EdgeInsets.all(10),
+      padding: EdgeInsets.symmetric(vertical: 5),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(
@@ -441,16 +440,22 @@ class _StockTradingPageState extends State<StockTradingPage> {
                   children: <Widget>[
                     Expanded(
                       child: TextButton(
-                        onPressed: () {
-                          _showBuyDialog(
-                              context, widget.tickerSymbol, currentPrice);
+                        onPressed: () async {
+                          try {
+                            double assetPortfolio = await fetchAssetPortfolio();
+                            _showBuyDialog(context, widget.tickerSymbol,
+                                currentPrice, assetPortfolio);
+                          } catch (e) {
+                            print("Failed to fetch asset portfolio: $e");
+                            // Optionally, handle this case in your UI, e.g., by showing an error message
+                          }
                         },
                         style: TextButton.styleFrom(
                           backgroundColor: Color.fromARGB(
                               255, 180, 228, 166), // Button color
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(
-                                10), // Button border radius
+                                8), // Button border radius
                           ),
                           padding: EdgeInsets.all(
                               8.0), // Inner padding for TextButton
@@ -464,7 +469,43 @@ class _StockTradingPageState extends State<StockTradingPage> {
                     SizedBox(width: 20),
                     Expanded(
                       child: TextButton(
-                        onPressed: () {},
+                        onPressed: () async {
+                          try {
+                            String? userId = getCurrentUserId();
+                            if (userId != null) {
+                              int sellableShares = await fetchUserHoldings(
+                                  userId, widget.tickerSymbol);
+                              if (sellableShares > 0) {
+                                _showSellDialog(context, widget.tickerSymbol,
+                                    currentPrice, sellableShares);
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                        'You do not have any shares to sell.'),
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                              }
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('No user found, please login.'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            print("Failed to fetch user holdings: $e");
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content:
+                                    Text('Failed to fetch user holdings: $e'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        },
                         style: TextButton.styleFrom(
                           backgroundColor: Color.fromARGB(255, 242, 184, 184),
                           shape: RoundedRectangleBorder(
@@ -572,6 +613,79 @@ Future<void> handleBuy(String userId, String tickerSymbol, double price,
   }
 }
 
+Future<void> handleSell(
+  String userId,
+  String tickerSymbol,
+  double price,
+  int quantity,
+  String orderType,
+  double currentPrice,
+) async {
+  try {
+    if (orderType == 'Market Order') {
+      price = currentPrice; // Use current price for market order
+    }
+
+    DocumentReference transactionRef = await FirebaseFirestore.instance
+        .collection('paper_trading_transaction')
+        .add({
+      'pt_stockSymbol': tickerSymbol,
+      'pt_pricePerShare': price,
+      'pt_quantity': quantity,
+      'pt_orderType': orderType,
+      'pt_date': DateTime.now().toUtc().add(Duration(hours: 8)).toString(),
+      'pt_orderStatus': 'pending',
+      'pt_transactionType': 'sell'
+    });
+
+    // Update the user's document with the transaction reference
+    await FirebaseFirestore.instance.collection('users').doc(userId).update({
+      'paperTrading_transactionID': FieldValue.arrayUnion([transactionRef])
+    });
+
+    // Optionally, you can handle further business logic here if needed
+  } catch (e) {
+    print("An error occurred while processing the transaction: $e");
+  }
+}
+
+Future<double> fetchAssetPortfolio() async {
+  User? user = FirebaseAuth.instance.currentUser;
+  if (user != null) {
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+    if (userDoc.exists) {
+      var portfolio =
+          (userDoc.data() as Map<String, dynamic>)['assetPortfolio'];
+      return (portfolio is int)
+          ? portfolio.toDouble()
+          : (portfolio as double? ?? 0.0);
+    } else {
+      return 0.0; // Or handle the absence of data appropriately
+    }
+  } else {
+    throw Exception("No user logged in");
+  }
+}
+
+Future<int> fetchUserHoldings(String userId, String tickerSymbol) async {
+  DocumentSnapshot userDoc =
+      await FirebaseFirestore.instance.collection('users').doc(userId).get();
+  if (userDoc.exists) {
+    var holdings = (userDoc.data() as Map<String, dynamic>)['holding_shares']
+        as List<dynamic>;
+    for (var holding in holdings) {
+      if (holding['hs_tickerSymbol'] == tickerSymbol) {
+        print(holding['hs_quantity']);
+        return (holding['hs_quantity'] as num).toInt();
+      }
+    }
+  }
+  return 0; // User does not hold any shares of the tickerSymbol
+}
+
 class Candle {
   final double open;
   final double high;
@@ -658,8 +772,8 @@ InputDecoration getDecoration(String label) {
   );
 }
 
-void _showBuyDialog(
-    BuildContext context, String tickerSymbol, double currentPrice) {
+void _showBuyDialog(BuildContext context, String tickerSymbol,
+    double currentPrice, double totalAssetPortfolio) {
   TextEditingController symbolController =
       TextEditingController(text: tickerSymbol);
   TextEditingController priceController =
@@ -667,6 +781,27 @@ void _showBuyDialog(
   TextEditingController quantityController = TextEditingController(text: '1');
   TextEditingController amountController =
       TextEditingController(text: currentPrice.toStringAsFixed(2));
+  TextEditingController buyableController = TextEditingController();
+
+  // Calculate initial buyable amount
+  int initialBuyable = (totalAssetPortfolio / currentPrice).floor();
+  buyableController.text = initialBuyable.toString();
+
+  void updateAmount() {
+    double price = double.tryParse(priceController.text) ?? 0.0;
+    int quantity = int.tryParse(quantityController.text) ?? 0;
+    double amount = price * quantity;
+    int buyable = (totalAssetPortfolio / price).floor();
+
+    amountController.text = amount.toStringAsFixed(2); // Format to two decimals
+    buyableController.text = buyable.toString(); // Update buyable amount
+    if (quantity > buyable) {
+      quantityController.text = buyable
+          .toString(); // Adjust quantity if it exceeds the buyable amount
+      amountController.text =
+          (price * buyable).toStringAsFixed(2); // Adjust total amount
+    }
+  }
 
   showDialog(
     context: context,
@@ -675,20 +810,11 @@ void _showBuyDialog(
       String dropdownValue = 'LMT Order'; // Default to LMT Order
       bool isPriceEnabled = true; // Price is enabled by default
 
-      void updateAmount() {
-        double price = double.tryParse(priceController.text) ?? 0.0;
-        int quantity = int.tryParse(quantityController.text) ?? 0;
-        double amount = price * quantity;
-        amountController.text =
-            amount.toStringAsFixed(2); // Format to two decimals
-      }
-
       return StatefulBuilder(
         builder: (BuildContext context, StateSetter setState) {
           return Dialog(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20.0),
-            ),
+                borderRadius: BorderRadius.circular(20.0)),
             child: Container(
               width: MediaQuery.of(context).size.width * 0.85,
               padding: EdgeInsets.all(20.0),
@@ -761,25 +887,255 @@ void _showBuyDialog(
                       decoration: getDecoration('Amount'),
                       controller: amountController,
                     ),
+                    //SizedBox(height: 16),
+                    Padding(
+                      padding: EdgeInsets.only(top: 4),
+                      child: RichText(
+                        text: TextSpan(
+                          style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.black), // Default text style
+                          children: <TextSpan>[
+                            TextSpan(text: 'Buyable: '), // The label in black
+                            TextSpan(
+                              text:
+                                  '$initialBuyable shares', // The value in green
+                              style: TextStyle(color: Colors.green),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                     SizedBox(height: 24),
                     ElevatedButton(
                       onPressed: () {
                         String? userId = getCurrentUserId();
                         if (userId != null) {
                           handleBuy(
-                              userId,
-                              symbolController.text,
-                              double.parse(priceController.text),
-                              int.parse(quantityController.text),
-                              dropdownValue);
+                                  userId,
+                                  symbolController.text,
+                                  double.parse(priceController.text),
+                                  int.parse(quantityController.text),
+                                  dropdownValue)
+                              .then((_) {
+                            Navigator.pop(context); // Close the dialog first
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                    'Your order has been placed successfully!'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          }).catchError((error) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Failed to place order: $error'),
+                                duration: Duration(seconds: 3),
+                              ),
+                            );
+                          });
                         } else {
-                          // Handle the case where there is no user logged in
                           print("No user found, please login.");
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('No user found, please login.'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
                         }
                       },
                       child: Text('Buy'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Color.fromARGB(255, 180, 228, 166),
+                        foregroundColor: Colors.black,
+                        minimumSize: Size(double.infinity, 36),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
+void _showSellDialog(BuildContext context, String tickerSymbol,
+    double currentPrice, int sellableShares) {
+  TextEditingController symbolController =
+      TextEditingController(text: tickerSymbol);
+  TextEditingController priceController =
+      TextEditingController(text: currentPrice.toStringAsFixed(2));
+  TextEditingController quantityController = TextEditingController(text: '1');
+  TextEditingController amountController =
+      TextEditingController(text: currentPrice.toStringAsFixed(2));
+  TextEditingController sellableController =
+      TextEditingController(text: sellableShares.toString());
+
+  void updateAmount() {
+    double price = double.tryParse(priceController.text) ?? 0.0;
+    int quantity = int.tryParse(quantityController.text) ?? 0;
+    double amount = price * quantity;
+
+    amountController.text = amount.toStringAsFixed(2); // Format to two decimals
+    if (quantity > sellableShares) {
+      quantityController.text = sellableShares
+          .toString(); // Adjust quantity if it exceeds the sellable shares
+      amountController.text =
+          (price * sellableShares).toStringAsFixed(2); // Adjust total amount
+    }
+  }
+
+  showDialog(
+    context: context,
+    barrierDismissible: true,
+    builder: (BuildContext context) {
+      String dropdownValue = 'LMT Order'; // Default to LMT Order
+      bool isPriceEnabled = true; // Price is enabled by default
+
+      return StatefulBuilder(
+        builder: (BuildContext context, StateSetter setState) {
+          return Dialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20.0)),
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.85,
+              padding: EdgeInsets.all(20.0),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('S&P 500 Stock Paper Trading',
+                        style: GoogleFonts.robotoCondensed(
+                            fontWeight: FontWeight.bold, fontSize: 20.0)),
+                    SizedBox(height: 20.0),
+                    TextFormField(
+                      enabled: false,
+                      controller: symbolController,
+                      decoration: getDecoration('Symbol'),
+                    ),
+                    SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: dropdownValue,
+                      decoration: getDecoration('Types').copyWith(
+                        suffixIcon: IconButton(
+                          icon: Icon(Icons.help_outline),
+                          onPressed: () => _showOrderTypeDialog(context),
+                        ),
+                      ),
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          setState(() {
+                            dropdownValue = newValue;
+                            isPriceEnabled = newValue ==
+                                'LMT Order'; // Enable price only for LMT Order
+                            if (!isPriceEnabled) {
+                              priceController.text = currentPrice
+                                  .toStringAsFixed(2); // Reset to current price
+                              updateAmount();
+                            }
+                          });
+                        }
+                      },
+                      items: <String>['LMT Order', 'Market Order']
+                          .map((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
+                    ),
+                    SizedBox(height: 16),
+                    IncrementDecrementField(
+                      label: 'Price',
+                      controller: priceController,
+                      onChanged: (value) {
+                        updateAmount();
+                      },
+                      isPrice: true,
+                      isEnabled: isPriceEnabled,
+                    ),
+                    SizedBox(height: 16),
+                    IncrementDecrementField(
+                      label: 'Quantity',
+                      controller: quantityController,
+                      onChanged: (value) {
+                        updateAmount();
+                      },
+                      isPrice: false,
+                    ),
+                    SizedBox(height: 16),
+                    TextFormField(
+                      enabled: false,
+                      decoration: getDecoration('Amount'),
+                      controller: amountController,
+                    ),
+                    Padding(
+                      padding: EdgeInsets.only(top: 4),
+                      child: RichText(
+                        text: TextSpan(
+                          style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.black), // Default text style
+                          children: <TextSpan>[
+                            TextSpan(text: 'Sellable: '), // The label in black
+                            TextSpan(
+                              text:
+                                  '$sellableShares shares', // The value in green
+                              style: TextStyle(color: Colors.green),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () {
+                        String? userId = getCurrentUserId();
+                        if (userId != null) {
+                          handleSell(
+                            userId,
+                            symbolController.text,
+                            double.parse(priceController.text),
+                            int.parse(quantityController.text),
+                            dropdownValue,
+                            currentPrice,
+                          ).then((_) {
+                            Navigator.pop(context); // Close the dialog first
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                    'Your sell order has been placed successfully!'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          }).catchError((error) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content:
+                                    Text('Failed to place sell order: $error'),
+                                duration: Duration(seconds: 3),
+                              ),
+                            );
+                          });
+                        } else {
+                          print("No user found, please login.");
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('No user found, please login.'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      },
+                      child: Text('Sell'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color.fromARGB(255, 242, 184, 184),
                         foregroundColor: Colors.black,
                         minimumSize: Size(double.infinity, 36),
                         shape: RoundedRectangleBorder(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:qtrade_app/screen/algorithmPage.dart';
 import 'package:qtrade_app/screen/homePage.dart';
+import 'package:qtrade_app/screen/profilePage.dart';
 import 'package:qtrade_app/screen/tradingPage.dart';
 
 import '../screen/strategyPage.dart';
@@ -20,8 +21,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
       unselectedItemColor: Color.fromARGB(255, 171, 163, 202),
       currentIndex: currentIndex,
       onTap: (index) {
-        if (currentIndex == index)
-          return; // Do nothing if the current tab is reselected
+        if (currentIndex == index) return;
         switch (index) {
           case 0:
             Navigator.push(
@@ -45,6 +45,12 @@ class CustomBottomNavigationBar extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => TradingPage()),
+            );
+            break;
+          case 4:
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ProfilePage()),
             );
           // Add other cases for each tab
         }

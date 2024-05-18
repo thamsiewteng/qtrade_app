@@ -18,7 +18,6 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
     FirebaseFirestore firestore = FirebaseFirestore.instance;
     List<Map<String, dynamic>> backtestData = [];
 
-    // You should ensure that backtestReferences is not null before iterating
     if (backtestReferences != null) {
       for (var ref in backtestReferences) {
         var doc = await ref.get();
@@ -29,6 +28,115 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
     }
 
     return backtestData;
+  }
+
+  void _showPerformanceExplanationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Performance Metrics Explanation',
+              style: GoogleFonts.robotoCondensed(
+                  fontWeight: FontWeight.bold, fontSize: 20)),
+          content: Text(
+            'MAE (Mean Absolute Error):\nThe average of the absolute differences between predicted and actual values.\n\n'
+            'MSE (Mean Squared Error):\nThe average of the squared differences between predicted and actual values. Larger errors have a greater effect.\n\n'
+            'R² (R-Squared):\nThe proportion of the variance in the dependent variable that is predictable from the independent variables. Closer to 1 means better fit.\n\n'
+            'MAPE (Mean Absolute Percentage Error):\nThe average of the absolute percentage differences between predicted and actual values.',
+            style: GoogleFonts.robotoCondensed(fontSize: 16),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Close',
+                  style: GoogleFonts.robotoCondensed(fontSize: 16)),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showAnalysisExplanationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Analysis Metrics Explanation',
+              style: GoogleFonts.robotoCondensed(
+                  fontWeight: FontWeight.bold, fontSize: 20)),
+          content: SingleChildScrollView(
+            child: RichText(
+              text: TextSpan(
+                style: GoogleFonts.robotoCondensed(
+                    fontSize: 16, color: Colors.black),
+                children: <TextSpan>[
+                  TextSpan(
+                    text: 'EPS (Earnings Per Share):\n',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  TextSpan(
+                    text:
+                        'The portion of a company\'s profit allocated to each outstanding share of common stock.\n\n',
+                  ),
+                  TextSpan(
+                    text: 'Beta:\n',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  TextSpan(
+                    text:
+                        'A measure of a stock\'s volatility in relation to the overall market. A beta less than 1 indicates lower volatility than the market.\n\n',
+                  ),
+                  TextSpan(
+                    text: 'PE Ratio (Price to Earnings Ratio):\n',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  TextSpan(
+                    text:
+                        'A valuation ratio of a company\'s current share price compared to its per-share earnings.\n\n',
+                  ),
+                  TextSpan(
+                    text: 'Market Cap (Market Capitalization):\n',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  TextSpan(
+                    text:
+                        'The total market value of a company\'s outstanding shares. It is calculated by multiplying the stock price by the total number of outstanding shares.\n\n',
+                  ),
+                  TextSpan(
+                    text: 'Volatility:\n',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  TextSpan(
+                    text:
+                        'The degree of variation of a trading price series over time. Lower volatility means the stock price is more stable.\n\n',
+                  ),
+                  TextSpan(
+                    text: 'Trend Insight:\n',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  TextSpan(
+                    text:
+                        'The overall direction of the market or a stock. An uptrend indicates the stock is generally moving higher, while a downtrend indicates it is moving lower.',
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Close',
+                  style: GoogleFonts.robotoCondensed(fontSize: 16)),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -116,11 +224,10 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
             final String deployTicker = data['deploy_stockTicker'];
 
             DateTime deployDate = (data['deploy_date'] as Timestamp).toDate();
-
-            // Format the dates
-
             String formattedDeployedDate = formatDateWithTimezone(deployDate,
-                pattern: 'dd/MM/yyyy HH:mm:ss', isUtc: true);
+                pattern: 'dd/MM/yyyy hh:mm:ss a',
+                isUtc: false,
+                timezone: 'UTC+8');
 
             return SingleChildScrollView(
               child: Column(
@@ -156,9 +263,7 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
                               gridData: FlGridData(show: true),
                               titlesData: FlTitlesData(
                                 topTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: false,
-                                  ),
+                                  sideTitles: SideTitles(showTitles: false),
                                 ),
                                 leftTitles: AxisTitles(
                                   sideTitles: SideTitles(
@@ -179,23 +284,27 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
                                     showTitles: true,
                                     reservedSize: 32,
                                     getTitlesWidget: (value, meta) {
+                                      int index = value.toInt();
+                                      if (index < 0 || index >= dates.length)
+                                        return Container();
+                                      String formattedDate =
+                                          DateFormat('MMM dd').format(
+                                              DateTime.parse(dates[index]));
                                       return SideTitleWidget(
                                         axisSide: meta.axisSide,
                                         space: 8.0,
                                         child: Text(
-                                          value % pointsPerMonth == 0
-                                              ? _getMonthLabel(value ~/
-                                                  pointsPerMonth.toInt())
-                                              : '',
+                                          formattedDate,
                                           style: TextStyle(
                                             color: Color(0xff67727d),
                                             fontWeight: FontWeight.bold,
-                                            fontSize: 16,
+                                            fontSize: 12,
                                           ),
                                         ),
                                       );
                                     },
-                                    interval: pointsPerMonth.toDouble(),
+                                    interval: (dates.length / 6)
+                                        .ceilToDouble(), // Adjust interval based on number of dates
                                   ),
                                 ),
                               ),
@@ -205,7 +314,7 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
                                     color: const Color(0xff37434d), width: 1),
                               ),
                               minX: 0,
-                              maxX: actual.length.toDouble() - 1,
+                              maxX: (dates.length - 1).toDouble(),
                               minY: minY,
                               maxY: maxYWithPadding,
                               lineBarsData: [
@@ -230,39 +339,19 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
                               ],
                               lineTouchData: LineTouchData(
                                 touchTooltipData: LineTouchTooltipData(
-                                  //tooltipBgColor: Colors.blueGrey.withOpacity(0.8),
                                   getTooltipItems:
                                       (List<LineBarSpot> touchedSpots) {
-                                    String?
-                                        dateText; // Variable to store the date text
                                     return touchedSpots.map((barSpot) {
-                                      final String date =
+                                      String date =
                                           dates[barSpot.spotIndex.toInt()];
-                                      final bool isTouchedActual =
-                                          barSpot.barIndex == 0;
-
-                                      // Build the text for the tooltip item.
-                                      String tooltipText;
-                                      if (dateText == null) {
-                                        // First tooltip item, add the date.
-                                        tooltipText = 'Date: $date\n';
-                                        dateText =
-                                            date; // Remember that we've added the date.
-                                      } else {
-                                        // Not the first, just add an empty string.
-                                        tooltipText = '';
-                                      }
-                                      tooltipText += isTouchedActual
+                                      String tooltipText = 'Date: $date\n';
+                                      tooltipText += barSpot.barIndex == 0
                                           ? 'Actual: ${barSpot.y.toStringAsFixed(2)}'
                                           : 'Predicted: ${barSpot.y.toStringAsFixed(2)}';
-
-                                      // Now build and return the tooltip item.
                                       return LineTooltipItem(
                                         tooltipText,
                                         TextStyle(
-                                          color: isTouchedActual
-                                              ? Colors.white
-                                              : Colors.white,
+                                          color: Colors.white,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       );
@@ -332,11 +421,20 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
                                   fontSize: 16,
                                 )),
                             SizedBox(height: 20),
-                            Text('Performance Metrics',
-                                style: GoogleFonts.robotoCondensed(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                )),
+                            Row(
+                              children: [
+                                Text('Performance Metrics',
+                                    style: GoogleFonts.robotoCondensed(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold)),
+                                IconButton(
+                                  icon: Icon(Icons.help_outline),
+                                  onPressed: () {
+                                    _showPerformanceExplanationDialog(context);
+                                  },
+                                ),
+                              ],
+                            ),
                             SizedBox(
                                 height: 10), // Spacing between text and grid
                             GridView.count(
@@ -398,11 +496,20 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Analysis Metrics',
-                                  style: GoogleFonts.robotoCondensed(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  )),
+                              Row(
+                                children: [
+                                  Text('Analysis Metrics',
+                                      style: GoogleFonts.robotoCondensed(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold)),
+                                  IconButton(
+                                    icon: Icon(Icons.help_outline),
+                                    onPressed: () {
+                                      _showAnalysisExplanationDialog(context);
+                                    },
+                                  ),
+                                ],
+                              ),
                               SizedBox(height: 10),
                               AnalysisMetricCard(
                                 title: 'EPS',
@@ -459,7 +566,8 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
                   ),
                   //Backtest history title
                   Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0, vertical: 4.0),
                     child: Column(
                       children: [
                         Text(
@@ -481,25 +589,38 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
                         return Center(child: CircularProgressIndicator());
                       } else if (snapshot.hasError) {
                         return Center(child: Text('Error: ${snapshot.error}'));
-                      } else if (!snapshot.hasData) {
-                        return Center(
-                            child: Text('No backtest data available'));
+                      } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Card(
+                            color: Colors.white,
+                            elevation: 5,
+                            shadowColor: Colors.grey.withOpacity(0.5),
+                            child: Padding(
+                              padding: const EdgeInsets.all(10.0),
+                              child: Center(
+                                child: Text(
+                                  'No backtest data available',
+                                  style: GoogleFonts.robotoCondensed(
+                                    fontSize: 16,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
                       } else {
                         List<Map<String, dynamic>> backtests =
                             snapshot.data ?? [];
-                        if (backtests.isEmpty) {
-                          return Center(
-                              child: Text('No backtest data available'));
-                        } else {
-                          return Column(
-                            children: backtests
-                                .asMap()
-                                .entries
-                                .map((entry) => buildBacktestCard(context,
-                                    entry.value, entry.key, deployTicker))
-                                .toList(),
-                          );
-                        }
+                        return Column(
+                          children: backtests
+                              .asMap()
+                              .entries
+                              .map((entry) => buildBacktestCard(context,
+                                  entry.value, entry.key, deployTicker))
+                              .toList(),
+                        );
                       }
                     },
                   ),
@@ -594,14 +715,14 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
   }
 
   String formatDateWithTimezone(DateTime date,
-      {String? pattern, bool isUtc = false}) {
-    DateFormat formatter = DateFormat(pattern ?? 'dd/MM/yyyy HH:mm:ss');
-    DateTime localDate = isUtc ? date.toLocal() : date;
+      {String? pattern, bool isUtc = false, String timezone = 'UTC+8'}) {
+    DateFormat formatter = DateFormat(pattern ?? 'dd/MM/yyyy hh:mm:ss a');
+    DateTime localDate = isUtc ? date.toUtc() : date;
+    // Adjusting the date for UTC+8 timezone
+    if (timezone == 'UTC+8') {
+      localDate = localDate.add(Duration(hours: 8));
+    }
     return formatter.format(localDate);
-  }
-
-  String formatDate(DateTime date) {
-    return DateFormat('yyyy-MM-dd – kk:mm').format(date);
   }
 
   void _showBacktestDialog(
@@ -610,173 +731,211 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
       Timestamp deployEndDateTimestamp,
       String stockTicker,
       String deployAlgoID) {
-    // Convert Timestamp to DateTime and adjust for local timezone
-    DateTime deployStartDate = deployStartDateTimestamp.toDate().toLocal();
-    DateTime deployEndDate = deployEndDateTimestamp.toDate().toLocal();
-
-    // Assuming the backtestStartDate and backtestEndDate are initialized somewhere in your state
-    DateTime backtestStartDate =
-        deployStartDate; // Or some default start date within the allowed range
-    DateTime backtestEndDate =
-        deployEndDate; // Or the deployEndDate if it is before today
-
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Select Backtest Period',
-              style: GoogleFonts.robotoCondensed(
-                  fontWeight: FontWeight.bold, fontSize: 20)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              // Start Date Picker ListTile
-              ListTile(
-                title: Text('Start Date:',
-                    style: GoogleFonts.robotoCondensed(
-                        fontWeight: FontWeight.bold, fontSize: 17)),
-                subtitle: Text(formatDateWithTimezone(backtestStartDate,
-                    pattern: 'yyyy-MM-dd', isUtc: true)),
-                trailing: Icon(Icons.calendar_today),
-                onTap: () async {
-                  DateTime? pickedStartDate = await showDatePicker(
-                    context: context,
-                    initialDate: backtestStartDate,
-                    firstDate: deployStartDate,
-                    lastDate: backtestEndDate,
-                  );
-                  if (pickedStartDate != null &&
-                      pickedStartDate != backtestStartDate) {
-                    backtestStartDate = pickedStartDate;
-                    // Update your state here
-                  }
-                },
-              ),
-              // End Date Picker ListTile
-              ListTile(
-                title: Text('End Date:',
-                    style: GoogleFonts.robotoCondensed(
-                        fontWeight: FontWeight.bold, fontSize: 17)),
-                subtitle: Text(formatDateWithTimezone(backtestEndDate,
-                    pattern: 'yyyy-MM-dd', isUtc: true)),
-                trailing: Icon(Icons.calendar_today),
-                onTap: () async {
-                  DateTime? pickedEndDate = await showDatePicker(
-                    context: context,
-                    initialDate: backtestEndDate,
-                    firstDate: backtestStartDate,
-                    lastDate: deployEndDate,
-                  );
-                  if (pickedEndDate != null &&
-                      pickedEndDate != backtestEndDate) {
-                    backtestEndDate = pickedEndDate;
-                    // Update your state here
-                  }
-                },
-              ),
-              // Add your help icon button and other UI components as needed
-            ],
-          ),
-          actions: <Widget>[
-            // Cancel button
-            TextButton(
-              child: Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            // Confirm button
-            TextButton(
-              child: Text('Backtest Now'),
-              onPressed: () async {
-                debugPrint('selectedalgo: $deployAlgoID');
-
-                debugPrint('stockTicker: $stockTicker');
-                debugPrint('startDate: $deployStartDate');
-                debugPrint('backtestStartDate: $backtestStartDate');
-                debugPrint('backtestEndDate: $backtestEndDate');
-
-                var url = Uri.parse(
-                    'http://10.0.2.2:5000/predict/${deployAlgoID}'); // Replace with your actual backend URL
-                var headers = {'Content-Type': 'application/json'};
-                var requestBody = jsonEncode({
-                  'stockSymbol':
-                      stockTicker, // Assuming the stock symbol is always 'AMZN'
-                  'startDate': formatDateWithTimezone(deployStartDate,
-                      pattern: 'yyyy-MM-dd',
-                      isUtc:
-                          false), // This should probably be dynamic but is hardcoded for now
-                  'backtestStartDate': formatDateWithTimezone(backtestStartDate,
-                      pattern: 'yyyy-MM-dd', isUtc: false),
-                  'backtestEndDate': formatDateWithTimezone(backtestEndDate,
-                      pattern: 'yyyy-MM-dd', isUtc: false),
-                });
-
-                try {
-                  var response =
-                      await http.post(url, headers: headers, body: requestBody);
-                  if (response.statusCode == 200) {
-                    final Map<String, dynamic> responseData =
-                        json.decode(response.body);
-
-                    DocumentReference newAlgoRef = await FirebaseFirestore
-                        .instance
-                        .collection('backtest_algo')
-                        .add({
-                      'bt_startDate': formatDateWithTimezone(backtestStartDate,
-                          pattern: 'yyyy-MM-dd', isUtc: false),
-                      'bt_endDate': formatDateWithTimezone(backtestEndDate,
-                          pattern: 'yyyy-MM-dd', isUtc: false),
-                      'bt_annualReturn': responseData["annual_return"],
-                      'bt_totalTrade': responseData["total_trades"],
-                      'bt_winRate': responseData["win_rate"],
-                      'bt_lossRate': responseData["loss_rate"],
-                      'bt_drawdown': responseData["drawdown"],
-                      'bt_sharpeRatio': responseData["sharpe_ratio"],
-                      'bt_finalPortfolio':
-                          responseData["final_portfolio_value"],
-                      'bt_date': FieldValue.serverTimestamp(),
-                    });
-
-                    print(
-                        'Response data added to database with ID: ${newAlgoRef.id}');
-
-                    // Get the ID of the newly added backtest result
-                    String backtestResultId = newAlgoRef.id;
-                    print(
-                        'New backtest result added with ID: $backtestResultId');
-
-                    // Now, update the deployed_algo document with the new backtest reference
-                    DocumentReference backtestResultRef = FirebaseFirestore
-                        .instance
-                        .collection('backtest_algo')
-                        .doc(backtestResultId);
-
-// Now, update the deployed_algo document with the new backtest reference
-                    var deployedAlgoRef = FirebaseFirestore.instance
-                        .collection('deployed_algo')
-                        .doc(documentId);
-                    await deployedAlgoRef.update({
-                      'deploy_backtest':
-                          FieldValue.arrayUnion([backtestResultRef])
-                    });
-
-                    print('deploy_backtest field updated with new reference.');
-                  } else {
-                    print(
-                        'Request failed with status: ${response.statusCode}.');
-                  }
-                } catch (e) {
-                  print('An error occurred: $e');
-                }
-
-                Navigator.of(context)
-                    .pop(); // Close the dialog after sending the request
-              },
-            ),
-          ],
+        return BacktestDialog(
+          deployStartDateTimestamp: deployStartDateTimestamp,
+          deployEndDateTimestamp: deployEndDateTimestamp,
+          stockTicker: stockTicker,
+          deployAlgoID: deployAlgoID,
+          documentId: documentId,
         );
       },
+    );
+  }
+}
+
+class BacktestDialog extends StatefulWidget {
+  final Timestamp deployStartDateTimestamp;
+  final Timestamp deployEndDateTimestamp;
+  final String stockTicker;
+  final String deployAlgoID;
+  final String documentId;
+
+  BacktestDialog({
+    required this.deployStartDateTimestamp,
+    required this.deployEndDateTimestamp,
+    required this.stockTicker,
+    required this.deployAlgoID,
+    required this.documentId, // Include documentId in the constructor
+  });
+
+  @override
+  _BacktestDialogState createState() => _BacktestDialogState();
+}
+
+class _BacktestDialogState extends State<BacktestDialog> {
+  late DateTime deployStartDate;
+  late DateTime deployEndDate;
+  late DateTime backtestStartDate;
+  late DateTime backtestEndDate;
+
+  @override
+  void initState() {
+    super.initState();
+    deployStartDate = widget.deployStartDateTimestamp.toDate().toLocal();
+    deployEndDate = widget.deployEndDateTimestamp.toDate().toLocal();
+    backtestStartDate = deployStartDate;
+    backtestEndDate = deployEndDate;
+  }
+
+  String formatDateWithTimezone(DateTime date,
+      {String? pattern, bool isUtc = false, String timezone = 'UTC+8'}) {
+    DateFormat formatter = DateFormat(pattern ?? 'dd/MM/yyyy hh:mm:ss a');
+    DateTime localDate = isUtc ? date.toUtc() : date;
+    // Adjusting the date for UTC+8 timezone
+    if (timezone == 'UTC+8') {
+      localDate = localDate.add(Duration(hours: 8));
+    }
+    return formatter.format(localDate);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Select Backtest Period',
+          style: GoogleFonts.robotoCondensed(
+              fontWeight: FontWeight.bold, fontSize: 20)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          // Start Date Picker ListTile
+          ListTile(
+            title: Text('Start Date:',
+                style: GoogleFonts.robotoCondensed(
+                    fontWeight: FontWeight.bold, fontSize: 17)),
+            subtitle: Text(formatDateWithTimezone(backtestStartDate,
+                pattern: 'yyyy-MM-dd', isUtc: true)),
+            trailing: Icon(Icons.calendar_today),
+            onTap: () async {
+              DateTime? pickedStartDate = await showDatePicker(
+                context: context,
+                initialDate: backtestStartDate,
+                firstDate: deployStartDate,
+                lastDate: backtestEndDate,
+              );
+              if (pickedStartDate != null &&
+                  pickedStartDate != backtestStartDate) {
+                setState(() {
+                  backtestStartDate = pickedStartDate;
+                });
+              }
+            },
+          ),
+          // End Date Picker ListTile
+          ListTile(
+            title: Text('End Date:',
+                style: GoogleFonts.robotoCondensed(
+                    fontWeight: FontWeight.bold, fontSize: 17)),
+            subtitle: Text(formatDateWithTimezone(backtestEndDate,
+                pattern: 'yyyy-MM-dd', isUtc: true)),
+            trailing: Icon(Icons.calendar_today),
+            onTap: () async {
+              DateTime? pickedEndDate = await showDatePicker(
+                context: context,
+                initialDate: backtestEndDate,
+                firstDate: backtestStartDate,
+                lastDate: deployEndDate,
+              );
+              if (pickedEndDate != null && pickedEndDate != backtestEndDate) {
+                setState(() {
+                  backtestEndDate = pickedEndDate;
+                });
+              }
+            },
+          ),
+          // Add your help icon button and other UI components as needed
+        ],
+      ),
+      actions: <Widget>[
+        // Cancel button
+        TextButton(
+          child: Text('Cancel'),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
+        // Confirm button
+        TextButton(
+          child: Text('Backtest Now'),
+          onPressed: () async {
+            debugPrint('selectedalgo: ${widget.deployAlgoID}');
+
+            debugPrint('stockTicker: ${widget.stockTicker}');
+            debugPrint('startDate: $deployStartDate');
+            debugPrint('backtestStartDate: $backtestStartDate');
+            debugPrint('backtestEndDate: $backtestEndDate');
+
+            var url = Uri.parse(
+                'http://10.0.2.2:5000/predict/${widget.deployAlgoID}'); // Replace with your actual backend URL
+            var headers = {'Content-Type': 'application/json'};
+            var requestBody = jsonEncode({
+              'stockSymbol': widget.stockTicker,
+              'startDate': formatDateWithTimezone(deployStartDate,
+                  pattern: 'yyyy-MM-dd', isUtc: false),
+              'backtestStartDate': formatDateWithTimezone(backtestStartDate,
+                  pattern: 'yyyy-MM-dd', isUtc: false),
+              'backtestEndDate': formatDateWithTimezone(backtestEndDate,
+                  pattern: 'yyyy-MM-dd', isUtc: false),
+            });
+
+            try {
+              var response =
+                  await http.post(url, headers: headers, body: requestBody);
+              if (response.statusCode == 200) {
+                final Map<String, dynamic> responseData =
+                    json.decode(response.body);
+
+                DocumentReference newAlgoRef = await FirebaseFirestore.instance
+                    .collection('backtest_algo')
+                    .add({
+                  'bt_startDate': formatDateWithTimezone(backtestStartDate,
+                      pattern: 'yyyy-MM-dd', isUtc: false),
+                  'bt_endDate': formatDateWithTimezone(backtestEndDate,
+                      pattern: 'yyyy-MM-dd', isUtc: false),
+                  'bt_annualReturn': responseData["annual_return"],
+                  'bt_totalTrade': responseData["total_trades"],
+                  'bt_winRate': responseData["win_rate"],
+                  'bt_lossRate': responseData["loss_rate"],
+                  'bt_drawdown': responseData["drawdown"],
+                  'bt_sharpeRatio': responseData["sharpe_ratio"],
+                  'bt_finalPortfolio': responseData["final_portfolio_value"],
+                  'bt_date': FieldValue.serverTimestamp(),
+                });
+
+                print(
+                    'Response data added to database with ID: ${newAlgoRef.id}');
+
+                // Get the ID of the newly added backtest result
+                String backtestResultId = newAlgoRef.id;
+                print('New backtest result added with ID: $backtestResultId');
+
+                // Now, update the deployed_algo document with the new backtest reference
+                DocumentReference backtestResultRef = FirebaseFirestore.instance
+                    .collection('backtest_algo')
+                    .doc(backtestResultId);
+
+                var deployedAlgoRef = FirebaseFirestore.instance
+                    .collection('deployed_algo')
+                    .doc(widget.documentId);
+                await deployedAlgoRef.update({
+                  'deploy_backtest': FieldValue.arrayUnion([backtestResultRef])
+                });
+
+                print('deploy_backtest field updated with new reference.');
+              } else {
+                print('Request failed with status: ${response.statusCode}.');
+              }
+            } catch (e) {
+              print('An error occurred: $e');
+            }
+
+            Navigator.of(context)
+                .pop(); // Close the dialog after sending the request
+          },
+        ),
+      ],
     );
   }
 }
@@ -793,24 +952,6 @@ String formatMarketCap(num value) {
   } else {
     return value.toString();
   }
-}
-
-String _getMonthLabel(int value) {
-  List<String> months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec'
-  ];
-  return months[value % months.length];
 }
 
 Widget _leftTitleWidgets(double value, TitleMeta meta) {
@@ -880,11 +1021,11 @@ class PerformanceMetricCard extends StatelessWidget {
 
   Color _determineColor() {
     if (value <= lowThreshold) {
-      return Color.fromARGB(255, 180, 228, 166);
+      return Color.fromARGB(255, 189, 225, 188);
     } else if (value > highThreshold) {
-      return Color.fromARGB(255, 242, 184, 184);
+      return Color.fromARGB(255, 237, 196, 196);
     } else {
-      return Color.fromARGB(255, 239, 242, 184);
+      return Color.fromARGB(255, 231, 237, 196);
     }
   }
 
@@ -935,10 +1076,10 @@ class AnalysisMetricCard<T> extends StatelessWidget {
     // Handle String values
     if (value is String) {
       return value == goodThreshold
-          ? Color.fromARGB(255, 180, 228, 166)
+          ? Color.fromARGB(255, 189, 225, 188)
           : (value == badThreshold
-              ? Color.fromARGB(255, 242, 184, 184)
-              : Color.fromARGB(255, 239, 242, 184));
+              ? Color.fromARGB(255, 237, 196, 196)
+              : Color.fromARGB(255, 231, 237, 196));
     }
     // Handle numeric values
     if (value is num) {
@@ -946,12 +1087,12 @@ class AnalysisMetricCard<T> extends StatelessWidget {
       num numGoodThreshold = goodThreshold as num;
       num numBadThreshold = badThreshold as num;
       if (numValue <= numGoodThreshold) {
-        return Color.fromARGB(255, 180, 228, 166);
+        return Color.fromARGB(255, 189, 225, 188);
       } else if (numValue >= numBadThreshold) {
-        return Color.fromARGB(255, 242, 184, 184);
+        return Color.fromARGB(255, 237, 196, 196);
       }
     }
-    return Color.fromARGB(255, 239, 242, 184);
+    return Color.fromARGB(255, 231, 237, 196);
   }
 
   @override

@@ -1,18 +1,50 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'package:qtrade_app/screen/s&p500TradingPage.dart';
 
 import '../widgets/customBottomNavigationBar.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   HomePage({Key? key}) : super(key: key);
 
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   CollectionReference guidesCollection =
       FirebaseFirestore.instance.collection('investment_guides');
+
+  Future<List<Map<String, dynamic>>> fetchStockData() async {
+    final response = await http.post(
+      Uri.parse('http://10.0.2.2:5000/stocks_info'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'tickers': ['GOOG', 'AAPL', 'AMZN']
+      }), // Example tickers
+    );
+
+    if (response.statusCode == 200) {
+      List<dynamic> data = jsonDecode(response.body);
+      return data
+          .map((stock) => {
+                'ticker': stock['ticker'],
+                'companyName': stock['companyName'],
+                'currentPrice': stock['currentPrice'],
+                'changePercent': stock['changePercent'],
+              })
+          .toList();
+    } else {
+      throw Exception('Failed to load stock data');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,6 +96,8 @@ class HomePage extends StatelessWidget {
               Map<String, dynamic> userData =
                   snapshot.data!.data() as Map<String, dynamic>;
               String fullName = userData['fullName'] ?? 'User';
+              double assetPortfolio =
+                  (userData['assetPortfolio'] as num).toDouble();
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -97,7 +131,7 @@ class HomePage extends StatelessWidget {
                             ),
                             SizedBox(height: 8),
                             Text(
-                              '\$10,000',
+                              '\$${assetPortfolio.toStringAsFixed(2)}',
                               textAlign: TextAlign.center,
                               style: GoogleFonts.robotoCondensed(
                                 fontSize: 28,
@@ -106,9 +140,11 @@ class HomePage extends StatelessWidget {
                             ),
                             SizedBox(height: 16),
                             ElevatedButton(
-                              onPressed: () {
-                                // Handle invest now action
-                              },
+                              onPressed: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) =>
+                                          SP500TradingPage())),
                               child: Text('Invest now'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor:
@@ -133,29 +169,45 @@ class HomePage extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        StockTile(
-                          stockName: 'Google',
-                          stockPrice: '\$904.00',
-                          priceChange: '-1.80%',
-                          iconColor: Colors.red, // Change as needed
-                        ),
-                        StockTile(
-                          stockName: 'Apple',
-                          stockPrice: '\$321.00',
-                          priceChange: '+2.10%',
-                          iconColor: Colors.green, // Change as needed
-                        ),
-                        StockTile(
-                          stockName: 'Amazon',
-                          stockPrice: '\$1,893.00',
-                          priceChange: '-0.32%',
-                          iconColor: Colors.red, // Change as needed
+                        FutureBuilder<List<Map<String, dynamic>>>(
+                          future: fetchStockData(),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return Center(child: CircularProgressIndicator());
+                            }
+                            if (snapshot.hasError) {
+                              return Text("Something went wrong");
+                            }
+                            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                              return Text("No Stock Data Found");
+                            }
+
+                            return Column(
+                              children: snapshot.data!.map((stock) {
+                                return StockTile(
+                                  stockName: stock['companyName'],
+                                  stockPrice:
+                                      '\$${stock['currentPrice'].toStringAsFixed(2)}',
+                                  priceChange:
+                                      '${stock['changePercent'].toStringAsFixed(2)}%',
+                                  iconColor: stock['changePercent'] >= 0
+                                      ? Colors.green
+                                      : Colors.red,
+                                );
+                              }).toList(),
+                            );
+                          },
                         ),
                         Align(
                           alignment: Alignment.centerRight,
                           child: TextButton(
                             onPressed: () {
-                              // Handle see all action
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => SP500TradingPage()),
+                              );
                             },
                             child: Text(
                               'See All',
@@ -214,9 +266,8 @@ class HomePage extends StatelessWidget {
           ),
         ),
       ),
-      // BottomNavigationBar is assumed to be a custom widget created elsewhere
       bottomNavigationBar: CustomBottomNavigationBar(
-        currentIndex: 0, // Assuming HomePage is the first tab
+        currentIndex: 0,
         onTap: (index) {
           // Handle navigation bar tap
         },
@@ -260,7 +311,7 @@ class StockTile extends StatelessWidget {
       ),
       trailing: Text(
         stockPrice,
-        style: GoogleFonts.robotoCondensed(),
+        style: GoogleFonts.robotoCondensed(fontSize: 16),
       ),
     );
   }
