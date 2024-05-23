@@ -19,6 +19,38 @@ class StockTradingPage extends StatefulWidget {
   _StockTradingPageState createState() => _StockTradingPageState();
 }
 
+List<Candle> connectTradingPeriods(List<Candle> candles) {
+  List<Candle> connectedCandles = [];
+  for (int i = 0; i < candles.length - 1; i++) {
+    connectedCandles.add(candles[i]);
+    DateTime currentDateTime = candles[i].datetime;
+    DateTime nextDateTime = candles[i + 1].datetime;
+
+    // Check if the next candle is on a different day
+    if (currentDateTime.day != nextDateTime.day) {
+      // Add a connecting candle between the last closing price and the next opening price
+      connectedCandles.add(Candle(
+        open: candles[i].close,
+        high: candles[i].close,
+        low: candles[i].close,
+        close: candles[i].close,
+        datetime: DateTime(currentDateTime.year, currentDateTime.month,
+            currentDateTime.day, 23, 59),
+      ));
+      connectedCandles.add(Candle(
+        open: candles[i + 1].open,
+        high: candles[i + 1].open,
+        low: candles[i + 1].open,
+        close: candles[i + 1].open,
+        datetime: DateTime(
+            nextDateTime.year, nextDateTime.month, nextDateTime.day, 0, 0),
+      ));
+    }
+  }
+  connectedCandles.add(candles.last); // Add the last candle
+  return connectedCandles;
+}
+
 class CandlestickChart extends StatelessWidget {
   final List<Candle> candles;
   final TrackballBehavior trackballBehavior;
@@ -40,61 +72,37 @@ class CandlestickChart extends StatelessWidget {
     yAxisMinimum -= yAxisPadding;
     yAxisMaximum += yAxisPadding;
 
-    DateFormat xAxisDateFormat;
-    switch (selectedPeriod) {
-      case '1h':
-        xAxisDateFormat = DateFormat("HH:mm");
-        break;
-      case '6h':
-        xAxisDateFormat = DateFormat("HH:mm");
-        break;
-      case '24h':
-        xAxisDateFormat = DateFormat("HH:mm");
-        break;
-      case '7d':
-        xAxisDateFormat = DateFormat("MMMd");
-        break;
-      case '30d':
-        xAxisDateFormat = DateFormat("MMMd");
-        break;
-      default:
-        xAxisDateFormat = DateFormat("HH:mm");
-    }
     return Container(
       margin: EdgeInsets.all(10),
       padding: EdgeInsets.symmetric(vertical: 5),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(
-            8), // Optional: adds rounded corners to the chart's container
+        borderRadius: BorderRadius.circular(8),
       ),
       child: SfCartesianChart(
         zoomPanBehavior: ZoomPanBehavior(
           enablePanning: true,
           enablePinching: true,
           zoomMode: ZoomMode.x,
-          maximumZoomLevel:
-              0.1, // Adjust based on how much initial zoom you want
+          maximumZoomLevel: 0.1,
         ),
-        primaryXAxis: DateTimeAxis(
-          dateFormat: xAxisDateFormat,
-          intervalType: selectedPeriod == '7d' || selectedPeriod == '30d'
-              ? DateTimeIntervalType.days
-              : DateTimeIntervalType.auto,
-          majorGridLines: MajorGridLines(width: 0),
+        primaryXAxis: NumericAxis(
+          majorGridLines: MajorGridLines(width: 1),
+          minorGridLines: MinorGridLines(width: 0.5),
+          title: AxisTitle(text: 'Trading Periods'),
         ),
         primaryYAxis: NumericAxis(
           numberFormat: NumberFormat.simpleCurrency(decimalDigits: 2),
           minimum: yAxisMinimum,
           maximum: yAxisMaximum,
-          majorGridLines: MajorGridLines(width: 0),
-          interval: (yAxisMaximum - yAxisMinimum) /
-              5, // Set dynamic interval based on the adjusted range
+          majorGridLines: MajorGridLines(width: 1),
+          minorGridLines: MinorGridLines(width: 0.5),
+          interval: (yAxisMaximum - yAxisMinimum) / 5,
         ),
         series: <CandleSeries>[
-          CandleSeries<Candle, DateTime>(
+          CandleSeries<Candle, int>(
             dataSource: candles,
-            xValueMapper: (Candle candle, _) => candle.datetime,
+            xValueMapper: (Candle candle, int index) => index,
             lowValueMapper: (Candle candle, _) => candle.low,
             highValueMapper: (Candle candle, _) => candle.high,
             openValueMapper: (Candle candle, _) => candle.open,
@@ -104,17 +112,98 @@ class CandlestickChart extends StatelessWidget {
             bullColor: Colors.green,
           )
         ],
-        trackballBehavior: trackballBehavior,
+        trackballBehavior: TrackballBehavior(
+          enable: true,
+          activationMode: ActivationMode.singleTap,
+          lineType: TrackballLineType.vertical,
+          tooltipSettings: InteractiveTooltip(
+            enable: true,
+            color: Colors.white,
+            borderWidth: 1,
+            borderColor: Colors.black,
+            textStyle: TextStyle(color: Colors.black),
+            format:
+                'Open: \$point.open\nHigh: \$point.high\nLow: \$point.low\nClose: \$point.close\nDate: ${DateFormat.yMMMd().format(DateTime.now())}',
+          ),
+        ),
       ),
     );
   }
 }
 
-double calculateInterval(List<Candle> candles) {
-  var minVal = candles.map((candle) => candle.low).reduce(min);
-  var maxVal = candles.map((candle) => candle.high).reduce(max);
-  var interval = (maxVal - minVal) / 5;
-  return interval;
+class LineChart extends StatelessWidget {
+  final List<Candle> candles;
+  final TrackballBehavior trackballBehavior;
+  final String selectedPeriod;
+
+  const LineChart({
+    Key? key,
+    required this.candles,
+    required this.trackballBehavior,
+    required this.selectedPeriod,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    double yAxisMinimum = candles.map((candle) => candle.low).reduce(min);
+    double yAxisMaximum = candles.map((candle) => candle.high).reduce(max);
+
+    double yAxisPadding = (yAxisMaximum - yAxisMinimum) * 0.1;
+    yAxisMinimum -= yAxisPadding;
+    yAxisMaximum += yAxisPadding;
+
+    return Container(
+      margin: EdgeInsets.all(10),
+      padding: EdgeInsets.symmetric(vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: SfCartesianChart(
+        zoomPanBehavior: ZoomPanBehavior(
+          enablePanning: true,
+          enablePinching: true,
+          zoomMode: ZoomMode.x,
+          maximumZoomLevel: 0.1,
+        ),
+        primaryXAxis: NumericAxis(
+          majorGridLines: MajorGridLines(width: 1),
+          minorGridLines: MinorGridLines(width: 0.5),
+          title: AxisTitle(text: 'Trading Periods'),
+        ),
+        primaryYAxis: NumericAxis(
+          numberFormat: NumberFormat.simpleCurrency(decimalDigits: 2),
+          minimum: yAxisMinimum,
+          maximum: yAxisMaximum,
+          majorGridLines: MajorGridLines(width: 1),
+          minorGridLines: MinorGridLines(width: 0.5),
+          interval: (yAxisMaximum - yAxisMinimum) / 5,
+        ),
+        series: <LineSeries<Candle, int>>[
+          LineSeries<Candle, int>(
+            dataSource: candles,
+            xValueMapper: (Candle candle, int index) => index,
+            yValueMapper: (Candle candle, _) => candle.close,
+            enableTooltip: true,
+            color: Colors.blue,
+          ),
+        ],
+        trackballBehavior: TrackballBehavior(
+          enable: true,
+          activationMode: ActivationMode.singleTap,
+          lineType: TrackballLineType.vertical,
+          tooltipSettings: InteractiveTooltip(
+            enable: true,
+            color: Colors.white,
+            borderWidth: 1,
+            borderColor: Colors.black,
+            textStyle: TextStyle(color: Colors.black),
+            format: 'Date: ${DateFormat.yMMMd().format(DateTime.now())}',
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class StockInfoWidget extends StatefulWidget {
@@ -292,6 +381,7 @@ class _StockTradingPageState extends State<StockTradingPage> {
   double currentPrice = 0;
 
   bool showCandleChart = true;
+  bool isCandlestickChart = true; // Added to manage chart type
   @override
   void initState() {
     super.initState();
@@ -410,6 +500,73 @@ class _StockTradingPageState extends State<StockTradingPage> {
                   }).toList(),
                 ),
               ),
+              // Toggle button for chart type
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Card(
+                      color: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      elevation: 4,
+                      child: Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: ToggleButtons(
+                          borderRadius: BorderRadius.circular(10),
+                          selectedBorderColor: Color(0xFF0D0828),
+                          selectedColor: Colors.white,
+                          fillColor: Color(0xFF0D0828),
+                          color: Colors.black,
+                          borderWidth: 1,
+                          borderColor: Color(0xFF0D0828),
+                          constraints: BoxConstraints(
+                            minHeight: 40,
+                            minWidth: 150, // Adjust this to fit the text
+                          ),
+                          isSelected: [isCandlestickChart, !isCandlestickChart],
+                          onPressed: (index) {
+                            setState(() {
+                              isCandlestickChart = index == 0;
+                            });
+                          },
+                          children: [
+                            Container(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12.0),
+                              child: Text(
+                                'Candlestick Chart',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: isCandlestickChart
+                                      ? Colors.white
+                                      : Colors.black,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12.0),
+                              child: Text(
+                                'Line Graph',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: !isCandlestickChart
+                                      ? Colors.white
+                                      : Colors.black,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
               SizedBox(
                 height: 500, // Assign a fixed height for the chart
                 child: FutureBuilder<List<Candle>>(
@@ -420,11 +577,21 @@ class _StockTradingPageState extends State<StockTradingPage> {
                     } else if (snapshot.hasError) {
                       return Center(child: Text('Error: ${snapshot.error}'));
                     } else if (snapshot.hasData) {
-                      return CandlestickChart(
-                        candles: snapshot.data!,
-                        trackballBehavior: _trackballBehavior,
-                        selectedPeriod: selectedPeriod,
-                      );
+                      List<Candle> candles = snapshot.data!;
+
+                      if (isCandlestickChart) {
+                        return CandlestickChart(
+                          candles: candles,
+                          trackballBehavior: _trackballBehavior,
+                          selectedPeriod: selectedPeriod,
+                        );
+                      } else {
+                        return LineChart(
+                          candles: candles,
+                          trackballBehavior: _trackballBehavior,
+                          selectedPeriod: selectedPeriod,
+                        );
+                      }
                     } else {
                       return Center(child: Text('No candle data available'));
                     }
@@ -888,6 +1055,16 @@ void _showBuyDialog(BuildContext context, String tickerSymbol,
                       controller: amountController,
                     ),
                     //SizedBox(height: 16),
+                    SizedBox(
+                        height:
+                            4), // Add some space between the text and disclaimer
+                    Text(
+                      'A transaction fee of 0.2% is applied to each buy and sell order.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.black, // Lighter color for the disclaimer
+                      ),
+                    ),
                     Padding(
                       padding: EdgeInsets.only(top: 4),
                       child: RichText(
@@ -906,7 +1083,7 @@ void _showBuyDialog(BuildContext context, String tickerSymbol,
                         ),
                       ),
                     ),
-                    SizedBox(height: 24),
+                    SizedBox(height: 14),
                     ElevatedButton(
                       onPressed: () {
                         String? userId = getCurrentUserId();
@@ -1075,6 +1252,16 @@ void _showSellDialog(BuildContext context, String tickerSymbol,
                       decoration: getDecoration('Amount'),
                       controller: amountController,
                     ),
+                    SizedBox(
+                        height:
+                            4), // Add some space between the text and disclaimer
+                    Text(
+                      'A transaction fee of 0.2% is applied to each buy and sell order.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.black, // Lighter color for the disclaimer
+                      ),
+                    ),
                     Padding(
                       padding: EdgeInsets.only(top: 4),
                       child: RichText(
@@ -1093,7 +1280,7 @@ void _showSellDialog(BuildContext context, String tickerSymbol,
                         ),
                       ),
                     ),
-                    SizedBox(height: 24),
+                    SizedBox(height: 14),
                     ElevatedButton(
                       onPressed: () {
                         String? userId = getCurrentUserId();

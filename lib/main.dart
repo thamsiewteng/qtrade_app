@@ -1,16 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:qtrade_app/screen/splash.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:csv/csv.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:qtrade_app/services/notification_provider.dart';
 
-Future main() async {
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  runApp(MyApp());
-  //uploadSP500Data();
+
+  const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+
+  final InitializationSettings initializationSettings = InitializationSettings(
+    android: initializationSettingsAndroid,
+  );
+
+  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
+  const AndroidNotificationChannel channel = AndroidNotificationChannel(
+    'high_importance_channel', // ID
+    'High Importance Notifications',
+    importance: Importance.high,
+  );
+
+  await flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(channel);
+
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => NotificationProvider(),
+      child: MyApp(),
+    ),
+  );
 }
+// Future main() async {
+//   WidgetsFlutterBinding.ensureInitialized();
+//   await Firebase.initializeApp();
+//   runApp(MyApp());
+//   //uploadSP500Data();
+// }
 
 // Future<void> uploadSP500Data() async {
 //   final firestoreInstance = FirebaseFirestore.instance;

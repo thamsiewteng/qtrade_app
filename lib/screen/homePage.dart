@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:qtrade_app/screen/s&p500TradingPage.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 import '../widgets/customBottomNavigationBar.dart';
 
@@ -21,6 +22,50 @@ class _HomePageState extends State<HomePage> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   CollectionReference guidesCollection =
       FirebaseFirestore.instance.collection('investment_guides');
+
+  Map<String, double> currentPrices = {};
+  bool isLoading = true; // Add a loading state
+
+  @override
+  void initState() {
+    super.initState();
+    fetchCurrentPrices();
+  }
+
+  Future<void> fetchCurrentPrices() async {
+    // Fetch the current prices for the stocks in the portfolio
+    DocumentSnapshot userSnapshot = await firestore
+        .collection('users')
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .get();
+    var holdings = userSnapshot['holding_shares'] as List<dynamic>? ?? [];
+
+    for (var holding in holdings) {
+      String ticker = holding['hs_tickerSymbol'];
+      double currentPrice = await getCurrentMarketPrice(ticker);
+      setState(() {
+        currentPrices[ticker] = currentPrice;
+      });
+    }
+
+    setState(() {
+      isLoading = false; // Update the loading state
+    });
+  }
+
+  Future<double> getCurrentMarketPrice(String tickerSymbol) async {
+    final response = await http.post(
+      Uri.parse('http://10.0.2.2:5000/detailed_stock_info'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'ticker': tickerSymbol}),
+    );
+    if (response.statusCode == 200) {
+      var data = jsonDecode(response.body);
+      return double.tryParse(data['currentClose'].toString()) ?? 0.0;
+    } else {
+      throw Exception('Failed to load stock data');
+    }
+  }
 
   Future<List<Map<String, dynamic>>> fetchStockData() async {
     final response = await http.post(
@@ -99,6 +144,47 @@ class _HomePageState extends State<HomePage> {
               double assetPortfolio =
                   (userData['assetPortfolio'] as num).toDouble();
 
+              // Calculate total buy-in and current value
+              double totalBuyInValue = 0;
+              double totalCurrentValue = 0;
+
+              for (var holding in userData['holding_shares']) {
+                double buyInPrice = holding['hs_buyInPrice'] != null
+                    ? double.parse(holding['hs_buyInPrice'].toString())
+                    : 0.0;
+                double quantity = holding['hs_quantity'] != null
+                    ? double.parse(holding['hs_quantity'].toString())
+                    : 0.0;
+                double currentPrice =
+                    currentPrices[holding['hs_tickerSymbol']] != null
+                        ? currentPrices[holding['hs_tickerSymbol']]!
+                        : 0.0;
+
+                totalBuyInValue += buyInPrice * quantity;
+                totalCurrentValue += currentPrice * quantity;
+              }
+
+              double changePercentage = 0;
+              if (totalBuyInValue != 0) {
+                changePercentage =
+                    ((totalCurrentValue - totalBuyInValue) / totalBuyInValue) *
+                        100;
+              }
+
+              IconData indicatorIcon;
+              Color indicatorColor;
+
+              if (changePercentage > 0) {
+                indicatorIcon = Icons.arrow_upward;
+                indicatorColor = Colors.green;
+              } else if (changePercentage < 0) {
+                indicatorIcon = Icons.arrow_downward;
+                indicatorColor = Colors.red;
+              } else {
+                indicatorIcon = Icons.horizontal_rule;
+                indicatorColor = Colors.grey;
+              }
+
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -127,16 +213,38 @@ class _HomePageState extends State<HomePage> {
                               style: GoogleFonts.robotoCondensed(
                                 fontSize: 18,
                                 color: Colors.black54,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                             SizedBox(height: 8),
-                            Text(
-                              '\$${assetPortfolio.toStringAsFixed(2)}',
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.robotoCondensed(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  '\$${assetPortfolio.toStringAsFixed(2)}',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.robotoCondensed(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(width: 10),
+                                if (isLoading)
+                                  SpinKitThreeBounce(
+                                    color: Color.fromARGB(255, 168, 138, 245),
+                                    size: 20.0,
+                                  )
+                                else ...[
+                                  Icon(indicatorIcon, color: indicatorColor),
+                                  Text(
+                                    '${changePercentage.toStringAsFixed(2)}%',
+                                    style: GoogleFonts.robotoCondensed(
+                                      fontSize: 18,
+                                      color: indicatorColor,
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                             SizedBox(height: 16),
                             ElevatedButton(

@@ -6,19 +6,32 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'package:qtrade_app/screen/backtestDetailsPage.dart';
+import 'package:qtrade_app/services/notification_provider.dart';
 
-class DeployedAlgoDetailsPage extends StatelessWidget {
+class DeployedAlgoDetailsPage extends StatefulWidget {
   final String documentId;
 
   DeployedAlgoDetailsPage({required this.documentId});
+
+  @override
+  _DeployedAlgoDetailsPageState createState() =>
+      _DeployedAlgoDetailsPageState();
+}
+
+enum BacktestStatus { idle, inProgress, success, failure }
+
+class _DeployedAlgoDetailsPageState extends State<DeployedAlgoDetailsPage> {
+  BacktestStatus _backtestStatus = BacktestStatus.idle;
+  String? _backtestMessage;
 
   Future<List<Map<String, dynamic>>> fetchBacktestHistory(
       List<DocumentReference> backtestReferences) async {
     FirebaseFirestore firestore = FirebaseFirestore.instance;
     List<Map<String, dynamic>> backtestData = [];
 
-    if (backtestReferences != null) {
+    if (backtestReferences.isNotEmpty) {
       for (var ref in backtestReferences) {
         var doc = await ref.get();
         if (doc.data() != null) {
@@ -139,6 +152,96 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
     );
   }
 
+  void refreshBacktestHistory() {
+    setState(() {});
+  }
+
+  Future<void> _startBacktest({
+    required String deployAlgoID,
+    required String stockTicker,
+    required DateTime backtestStartDate,
+    required DateTime backtestEndDate,
+  }) async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Backtesting...'),
+      ),
+    );
+
+    var url = Uri.parse('http://10.0.2.2:5000/predict/$deployAlgoID');
+    var headers = {'Content-Type': 'application/json'};
+    var requestBody = jsonEncode({
+      'stockSymbol': stockTicker,
+      'startDate': formatDateWithTimezone(backtestStartDate,
+          pattern: 'yyyy-MM-dd', isUtc: false),
+      'backtestStartDate': formatDateWithTimezone(backtestStartDate,
+          pattern: 'yyyy-MM-dd', isUtc: false),
+      'backtestEndDate': formatDateWithTimezone(backtestEndDate,
+          pattern: 'yyyy-MM-dd', isUtc: false),
+    });
+
+    try {
+      var response = await http.post(url, headers: headers, body: requestBody);
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+
+        DocumentReference newAlgoRef =
+            await FirebaseFirestore.instance.collection('backtest_algo').add({
+          'bt_startDate': formatDateWithTimezone(backtestStartDate,
+              pattern: 'yyyy-MM-dd', isUtc: false),
+          'bt_endDate': formatDateWithTimezone(backtestEndDate,
+              pattern: 'yyyy-MM-dd', isUtc: false),
+          'bt_annualReturn': responseData["annual_return"],
+          'bt_totalTrade': responseData["total_trades"],
+          'bt_winRate': responseData["win_rate"],
+          'bt_lossRate': responseData["loss_rate"],
+          'bt_drawdown': responseData["drawdown"],
+          'bt_sharpeRatio': responseData["sharpe_ratio"],
+          'bt_finalPortfolio': responseData["final_portfolio_value"],
+          'bt_date': FieldValue.serverTimestamp(),
+        });
+
+        print('Response data added to database with ID: ${newAlgoRef.id}');
+
+        String backtestResultId = newAlgoRef.id;
+        print('New backtest result added with ID: $backtestResultId');
+
+        DocumentReference backtestResultRef = FirebaseFirestore.instance
+            .collection('backtest_algo')
+            .doc(backtestResultId);
+
+        var deployedAlgoRef = FirebaseFirestore.instance
+            .collection('deployed_algo')
+            .doc(widget.documentId);
+        await deployedAlgoRef.update({
+          'deploy_backtest': FieldValue.arrayUnion([backtestResultRef])
+        });
+
+        print('deploy_backtest field updated with new reference.');
+
+        Provider.of<NotificationProvider>(context, listen: false)
+            .showLocalNotification('Backtest Complete',
+                'Backtest for $stockTicker completed successfully.');
+        refreshBacktestHistory();
+      } else {
+        print('Request failed with status: ${response.statusCode}.');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text('Backtest failed with status: ${response.statusCode}.'),
+          ),
+        );
+      }
+    } catch (e) {
+      print('An error occurred: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('An error occurred: $e'),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     FirebaseFirestore firestore = FirebaseFirestore.instance;
@@ -169,7 +272,10 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
           ),
         ),
         child: FutureBuilder<DocumentSnapshot>(
-          future: firestore.collection('deployed_algo').doc(documentId).get(),
+          future: firestore
+              .collection('deployed_algo')
+              .doc(widget.documentId)
+              .get(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Center(child: CircularProgressIndicator());
@@ -182,10 +288,10 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
             }
 
             var backtestdata = snapshot.data!.data() as Map<String, dynamic>;
-            List<DocumentReference> backtestRefs = (backtestdata[
-                    'deploy_backtest'] as List)
-                .map((item) => item as DocumentReference)
-                .toList(); // Make sure to check for null before this operation.
+            List<DocumentReference> backtestRefs =
+                (backtestdata['deploy_backtest'] as List)
+                    .map((item) => item as DocumentReference)
+                    .toList();
 
             var data = snapshot.data!.data() as Map<String, dynamic>;
             String graphDataString = data['deploy_graph'];
@@ -210,13 +316,11 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
 
             final minY = actual.reduce(math.min) * 0.9;
             final maxY = actual.reduce(math.max) * 1.1;
-            final pointsPerMonth = 30; // Adjust this value as needed
+            final pointsPerMonth = 30;
 
             final screenWidth = MediaQuery.of(context).size.width;
-            final graphWidth = screenWidth *
-                2; // Adjust the scaling factor as needed to fit the graph
-            final double topPadding =
-                20; // Additional top padding for the highest price
+            final graphWidth = screenWidth * 2;
+            final double topPadding = 20;
             final maxYWithPadding = maxY + topPadding;
 
             final String deployName = data['deploy_algoName'];
@@ -303,8 +407,7 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
                                         ),
                                       );
                                     },
-                                    interval: (dates.length / 6)
-                                        .ceilToDouble(), // Adjust interval based on number of dates
+                                    interval: (dates.length / 6).ceilToDouble(),
                                   ),
                                 ),
                               ),
@@ -379,9 +482,7 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
                           text: 'Actual',
                           isSquare: false,
                         ),
-                        SizedBox(
-                          width: 10,
-                        ),
+                        SizedBox(width: 10),
                         Indicator(
                           color: Colors.orange,
                           text: 'Predicted',
@@ -390,12 +491,12 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
                       ],
                     ),
                   ),
-
                   SizedBox(height: 20),
                   Padding(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16.0, vertical: 8.0),
                     child: Card(
+                      color: Colors.white,
                       elevation: 5,
                       shadowColor: Colors.grey.withOpacity(0.5),
                       child: Padding(
@@ -409,17 +510,14 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
                                   fontWeight: FontWeight.bold,
                                 )),
                             Text('Algorithm Name: $deployName',
-                                style: GoogleFonts.robotoCondensed(
-                                  fontSize: 16,
-                                )),
+                                style:
+                                    GoogleFonts.robotoCondensed(fontSize: 16)),
                             Text('Ticker: $deployTicker',
-                                style: GoogleFonts.robotoCondensed(
-                                  fontSize: 16,
-                                )),
+                                style:
+                                    GoogleFonts.robotoCondensed(fontSize: 16)),
                             Text('Deploy Date: $formattedDeployedDate',
-                                style: GoogleFonts.robotoCondensed(
-                                  fontSize: 16,
-                                )),
+                                style:
+                                    GoogleFonts.robotoCondensed(fontSize: 16)),
                             SizedBox(height: 20),
                             Row(
                               children: [
@@ -435,21 +533,14 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
                                 ),
                               ],
                             ),
-                            SizedBox(
-                                height: 10), // Spacing between text and grid
+                            SizedBox(height: 10),
                             GridView.count(
                               shrinkWrap: true,
-                              physics:
-                                  NeverScrollableScrollPhysics(), // to disable GridView's scrolling
-                              crossAxisCount:
-                                  2, // Creates a grid with 2 columns
-                              childAspectRatio: 3 /
-                                  2, // Adjust this value as needed, 3 is width, 1 is height
-                              crossAxisSpacing:
-                                  10, // Spacing between the cards horizontally
-                              mainAxisSpacing:
-                                  10, // Spacing between the cards vertically
-
+                              physics: NeverScrollableScrollPhysics(),
+                              crossAxisCount: 2,
+                              childAspectRatio: 3 / 2,
+                              crossAxisSpacing: 10,
+                              mainAxisSpacing: 10,
                               children: <Widget>[
                                 PerformanceMetricCard(
                                   title: 'MAE(Mean Absolute Error)',
@@ -483,12 +574,11 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
                       ),
                     ),
                   ),
-
-                  // Analysis Card
                   Padding(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16.0, vertical: 8.0),
                     child: Card(
+                      color: Colors.white,
                       elevation: 5,
                       shadowColor: Colors.grey.withOpacity(0.5),
                       child: Padding(
@@ -514,57 +604,45 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
                               AnalysisMetricCard(
                                 title: 'EPS',
                                 value: data['deploy_EPS'] ?? 0,
-                                goodThreshold: 2, // EPS greater than 2 is good
-                                badThreshold: 1, // EPS less than 1 is bad
+                                goodThreshold: 2,
+                                badThreshold: 1,
                               ),
                               AnalysisMetricCard(
                                 title: 'Beta',
                                 value: data['deploy_beta'] ?? 0,
-                                goodThreshold:
-                                    1, // Beta less than 1 is good (less volatility)
-                                badThreshold:
-                                    2, // Beta greater than 2 is bad (more volatility)
+                                goodThreshold: 1,
+                                badThreshold: 2,
                               ),
                               AnalysisMetricCard(
                                 title: 'PE Ratio',
                                 value: data['deploy_peRatio'] ?? 0,
-                                goodThreshold:
-                                    15, // PE Ratio less than 15 is good
-                                badThreshold:
-                                    25, // PE Ratio greater than 25 is bad
+                                goodThreshold: 15,
+                                badThreshold: 25,
                               ),
                               AnalysisMetricCard(
                                 title: 'Market Cap',
                                 value:
                                     formatMarketCap(data['deploy_marketCap']) ??
                                         0,
-                                goodThreshold:
-                                    200e9, // Market Cap greater than 200 billion is good
-                                badThreshold:
-                                    10e9, // Market Cap less than 10 billion is bad
+                                goodThreshold: 200e9,
+                                badThreshold: 10e9,
                               ),
                               AnalysisMetricCard(
                                 title: 'Volatility',
                                 value: data['deploy_volatility'] ?? 0,
-                                goodThreshold:
-                                    0.5, // Volatility less than 0.5% is good
-                                badThreshold:
-                                    2, // Volatility greater than 2% is bad
+                                goodThreshold: 0.5,
+                                badThreshold: 2,
                               ),
                               AnalysisMetricCard(
                                 title: 'Trend Insight',
                                 value: data['deploy_trendInsight'] ?? '',
-                                goodThreshold:
-                                    'Uptrend', // Trend insight of 'Uptrend' is good
-                                badThreshold:
-                                    'Downtrend', // Trend insight of 'Downtrend' is bad
+                                goodThreshold: 'Uptrend',
+                                badThreshold: 'Downtrend',
                               ),
-                              // ... Add more AnalysisMetricCard widgets if needed ...
                             ],
                           )),
                     ),
                   ),
-                  //Backtest history title
                   Padding(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16.0, vertical: 4.0),
@@ -624,16 +702,38 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
                       }
                     },
                   ),
-
                   Align(
                     alignment: Alignment.centerRight,
                     child: Padding(
-                      padding:
-                          const EdgeInsets.only(right: 16.0), // Right padding
+                      padding: const EdgeInsets.only(right: 16.0),
                       child: ElevatedButton(
-                        onPressed: () {
-                          _showBacktestDialog(context, data['deploy_startDate'],
-                              data['deploy_date'], deployTicker, deployAlgoID);
+                        onPressed: () async {
+                          final result = await showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return BacktestDialog(
+                                deployStartDateTimestamp:
+                                    data['deploy_startDate'],
+                                deployEndDateTimestamp: data['deploy_date'],
+                                stockTicker: deployTicker,
+                                deployAlgoID: deployAlgoID,
+                                documentId: widget.documentId,
+                                isBacktest: false,
+                              );
+                            },
+                          );
+
+                          if (result != null && result['isBacktest']) {
+                            final backtestStartDate =
+                                result['backtestStartDate'];
+                            final backtestEndDate = result['backtestEndDate'];
+                            await _startBacktest(
+                              deployAlgoID: deployAlgoID,
+                              stockTicker: deployTicker,
+                              backtestStartDate: backtestStartDate,
+                              backtestEndDate: backtestEndDate,
+                            );
+                          }
                         },
                         child: Padding(
                           padding: EdgeInsets.symmetric(vertical: 10),
@@ -646,15 +746,14 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
                           ),
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF0D0828), // Button color
+                          backgroundColor: Color(0xFF0D0828),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                                10), // Button border radius
+                            borderRadius: BorderRadius.circular(10),
                           ),
                         ),
                       ),
                     ),
-                  ),
+                  )
                 ],
               ),
             );
@@ -690,7 +789,6 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
     DateTime btEndDate =
         DateTime.tryParse(backtestData['bt_endDate']) ?? DateTime.now();
 
-    // Format the dates
     String formattedBtDate = DateFormat('dd/MM/yyyy').format(btDate);
     String formattedStartDate = DateFormat('dd/MM/yyyy').format(btStartDate);
     String formattedEndDate = DateFormat('dd/MM/yyyy').format(btEndDate);
@@ -718,31 +816,10 @@ class DeployedAlgoDetailsPage extends StatelessWidget {
       {String? pattern, bool isUtc = false, String timezone = 'UTC+8'}) {
     DateFormat formatter = DateFormat(pattern ?? 'dd/MM/yyyy hh:mm:ss a');
     DateTime localDate = isUtc ? date.toUtc() : date;
-    // Adjusting the date for UTC+8 timezone
     if (timezone == 'UTC+8') {
       localDate = localDate.add(Duration(hours: 8));
     }
     return formatter.format(localDate);
-  }
-
-  void _showBacktestDialog(
-      BuildContext context,
-      Timestamp deployStartDateTimestamp,
-      Timestamp deployEndDateTimestamp,
-      String stockTicker,
-      String deployAlgoID) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return BacktestDialog(
-          deployStartDateTimestamp: deployStartDateTimestamp,
-          deployEndDateTimestamp: deployEndDateTimestamp,
-          stockTicker: stockTicker,
-          deployAlgoID: deployAlgoID,
-          documentId: documentId,
-        );
-      },
-    );
   }
 }
 
@@ -752,13 +829,15 @@ class BacktestDialog extends StatefulWidget {
   final String stockTicker;
   final String deployAlgoID;
   final String documentId;
+  bool isBacktest;
 
   BacktestDialog({
     required this.deployStartDateTimestamp,
     required this.deployEndDateTimestamp,
     required this.stockTicker,
     required this.deployAlgoID,
-    required this.documentId, // Include documentId in the constructor
+    required this.documentId,
+    required this.isBacktest,
   });
 
   @override
@@ -784,7 +863,6 @@ class _BacktestDialogState extends State<BacktestDialog> {
       {String? pattern, bool isUtc = false, String timezone = 'UTC+8'}) {
     DateFormat formatter = DateFormat(pattern ?? 'dd/MM/yyyy hh:mm:ss a');
     DateTime localDate = isUtc ? date.toUtc() : date;
-    // Adjusting the date for UTC+8 timezone
     if (timezone == 'UTC+8') {
       localDate = localDate.add(Duration(hours: 8));
     }
@@ -800,7 +878,6 @@ class _BacktestDialogState extends State<BacktestDialog> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          // Start Date Picker ListTile
           ListTile(
             title: Text('Start Date:',
                 style: GoogleFonts.robotoCondensed(
@@ -823,7 +900,6 @@ class _BacktestDialogState extends State<BacktestDialog> {
               }
             },
           ),
-          // End Date Picker ListTile
           ListTile(
             title: Text('End Date:',
                 style: GoogleFonts.robotoCondensed(
@@ -845,94 +921,29 @@ class _BacktestDialogState extends State<BacktestDialog> {
               }
             },
           ),
-          // Add your help icon button and other UI components as needed
         ],
       ),
       actions: <Widget>[
-        // Cancel button
         TextButton(
           child: Text('Cancel'),
           onPressed: () {
-            Navigator.of(context).pop();
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop({
+                'isBacktest': false,
+              }); // Return false on cancel
+            }
           },
         ),
-        // Confirm button
         TextButton(
           child: Text('Backtest Now'),
-          onPressed: () async {
-            debugPrint('selectedalgo: ${widget.deployAlgoID}');
-
-            debugPrint('stockTicker: ${widget.stockTicker}');
-            debugPrint('startDate: $deployStartDate');
-            debugPrint('backtestStartDate: $backtestStartDate');
-            debugPrint('backtestEndDate: $backtestEndDate');
-
-            var url = Uri.parse(
-                'http://10.0.2.2:5000/predict/${widget.deployAlgoID}'); // Replace with your actual backend URL
-            var headers = {'Content-Type': 'application/json'};
-            var requestBody = jsonEncode({
-              'stockSymbol': widget.stockTicker,
-              'startDate': formatDateWithTimezone(deployStartDate,
-                  pattern: 'yyyy-MM-dd', isUtc: false),
-              'backtestStartDate': formatDateWithTimezone(backtestStartDate,
-                  pattern: 'yyyy-MM-dd', isUtc: false),
-              'backtestEndDate': formatDateWithTimezone(backtestEndDate,
-                  pattern: 'yyyy-MM-dd', isUtc: false),
-            });
-
-            try {
-              var response =
-                  await http.post(url, headers: headers, body: requestBody);
-              if (response.statusCode == 200) {
-                final Map<String, dynamic> responseData =
-                    json.decode(response.body);
-
-                DocumentReference newAlgoRef = await FirebaseFirestore.instance
-                    .collection('backtest_algo')
-                    .add({
-                  'bt_startDate': formatDateWithTimezone(backtestStartDate,
-                      pattern: 'yyyy-MM-dd', isUtc: false),
-                  'bt_endDate': formatDateWithTimezone(backtestEndDate,
-                      pattern: 'yyyy-MM-dd', isUtc: false),
-                  'bt_annualReturn': responseData["annual_return"],
-                  'bt_totalTrade': responseData["total_trades"],
-                  'bt_winRate': responseData["win_rate"],
-                  'bt_lossRate': responseData["loss_rate"],
-                  'bt_drawdown': responseData["drawdown"],
-                  'bt_sharpeRatio': responseData["sharpe_ratio"],
-                  'bt_finalPortfolio': responseData["final_portfolio_value"],
-                  'bt_date': FieldValue.serverTimestamp(),
-                });
-
-                print(
-                    'Response data added to database with ID: ${newAlgoRef.id}');
-
-                // Get the ID of the newly added backtest result
-                String backtestResultId = newAlgoRef.id;
-                print('New backtest result added with ID: $backtestResultId');
-
-                // Now, update the deployed_algo document with the new backtest reference
-                DocumentReference backtestResultRef = FirebaseFirestore.instance
-                    .collection('backtest_algo')
-                    .doc(backtestResultId);
-
-                var deployedAlgoRef = FirebaseFirestore.instance
-                    .collection('deployed_algo')
-                    .doc(widget.documentId);
-                await deployedAlgoRef.update({
-                  'deploy_backtest': FieldValue.arrayUnion([backtestResultRef])
-                });
-
-                print('deploy_backtest field updated with new reference.');
-              } else {
-                print('Request failed with status: ${response.statusCode}.');
-              }
-            } catch (e) {
-              print('An error occurred: $e');
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop({
+                'isBacktest': true,
+                'backtestStartDate': backtestStartDate,
+                'backtestEndDate': backtestEndDate,
+              }); // Return true with dates on backtest now
             }
-
-            Navigator.of(context)
-                .pop(); // Close the dialog after sending the request
           },
         ),
       ],
@@ -1034,19 +1045,16 @@ class PerformanceMetricCard extends StatelessWidget {
     return Card(
       color: _determineColor(),
       child: Padding(
-        padding: const EdgeInsets.all(8.0), // Adjust the padding as needed
+        padding: const EdgeInsets.all(8.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment
-              .center, // Centers the children widgets vertically
-          crossAxisAlignment: CrossAxisAlignment
-              .start, // Aligns the children widgets at the start horizontally
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(title,
                 style: GoogleFonts.robotoCondensed(
                     fontSize: 14, fontWeight: FontWeight.bold)),
             Expanded(
               child: Center(
-                // This will center the value text in the remaining space
                 child: Text('${value.toStringAsFixed(2)}%',
                     style: GoogleFonts.robotoCondensed(
                         fontSize: 22, fontWeight: FontWeight.bold)),
@@ -1073,7 +1081,6 @@ class AnalysisMetricCard<T> extends StatelessWidget {
   });
 
   Color _determineColor() {
-    // Handle String values
     if (value is String) {
       return value == goodThreshold
           ? Color.fromARGB(255, 189, 225, 188)
@@ -1081,7 +1088,6 @@ class AnalysisMetricCard<T> extends StatelessWidget {
               ? Color.fromARGB(255, 237, 196, 196)
               : Color.fromARGB(255, 231, 237, 196));
     }
-    // Handle numeric values
     if (value is num) {
       num numValue = value as num;
       num numGoodThreshold = goodThreshold as num;
@@ -1097,13 +1103,10 @@ class AnalysisMetricCard<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Format the display value based on the type
     String displayValue;
     if (value is num) {
-      // If value is a number, format to two decimal places
       displayValue = (value as num).toStringAsFixed(3);
     } else {
-      // Otherwise, call toString (for non-numeric values)
       displayValue = value.toString();
     }
     return Card(

@@ -6,7 +6,12 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:qtrade_app/screen/homePage.dart';
 import 'package:qtrade_app/screen/signUpPage.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
+  @override
+  _LoginPageState createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final TextEditingController _emailController = TextEditingController();
@@ -18,6 +23,13 @@ class LoginPage extends StatelessWidget {
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Login successful!')),
+      );
+
+      // Delay for a short duration to let the user see the Snackbar
+      await Future.delayed(Duration(seconds: 2));
+
       Navigator.of(context).pushReplacement(MaterialPageRoute(
         builder: (context) => HomePage(), // Replace with your home page
       ));
@@ -28,28 +40,32 @@ class LoginPage extends StatelessWidget {
     }
   }
 
-  Future<void> _loginWithGoogle(BuildContext context) async {
-    try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser != null) {
-        final GoogleSignInAuthentication googleAuth =
-            await googleUser.authentication;
-        final OAuthCredential credential = GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken,
-          idToken: googleAuth.idToken,
-        );
-
-        await _auth.signInWithCredential(credential);
-        Navigator.of(context).pushReplacement(MaterialPageRoute(
-          builder: (context) => HomePage(), // Replace with your home page
-        ));
-      }
-    } catch (e) {
+  Future<void> _resetPassword(BuildContext context) async {
+    String email = _emailController.text.trim();
+    if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('Failed to sign in with Google: ${e.toString()}')),
+        SnackBar(content: Text('Please enter your email address')),
+      );
+      return;
+    }
+
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Password reset email sent')),
+      );
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? 'Password reset failed')),
       );
     }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -89,12 +105,13 @@ class LoginPage extends StatelessWidget {
               decoration: InputDecoration(
                 labelText: 'Password',
                 suffixIcon: InkWell(
-                  onTap: () {
-                    // TODO: Implement forgot password feature
-                  },
-                  child: Text(
-                    'Forgot password?',
-                    style: GoogleFonts.roboto(color: Colors.blue),
+                  onTap: () => _resetPassword(context),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(
+                      'Forgot password?',
+                      style: GoogleFonts.roboto(),
+                    ),
                   ),
                 ),
               ),
@@ -114,20 +131,6 @@ class LoginPage extends StatelessWidget {
               ),
             ),
             SizedBox(height: 16),
-            Divider(),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: SignInButton(
-                Buttons.Google,
-                text: "Sign in with Google",
-                onPressed: () => _loginWithGoogle(context),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding: EdgeInsets.all(0),
-              ),
-            ),
             TextButton(
               onPressed: () {
                 Navigator.push(
@@ -137,7 +140,7 @@ class LoginPage extends StatelessWidget {
               },
               child: Text(
                 "Don't have an account? Sign Up",
-                style: GoogleFonts.roboto(color: Colors.blue),
+                style: GoogleFonts.roboto(),
               ),
             ),
           ],

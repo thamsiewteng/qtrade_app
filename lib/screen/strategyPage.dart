@@ -1,18 +1,16 @@
 import 'dart:convert';
-import 'dart:math';
-
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:qtrade_app/services/notification_provider.dart';
 import 'package:qtrade_app/screen/deployedAlgoDetailsPage.dart';
 import 'package:qtrade_app/screen/deployedHistoryPage.dart';
-
 import '../widgets/customBottomNavigationBar.dart';
 import 'algorithmPage.dart';
-import 'package:intl/intl.dart';
-import 'package:http/http.dart' as http;
 
 class StrategyPage extends StatefulWidget {
   @override
@@ -93,7 +91,7 @@ class _StrategyPageState extends State<StrategyPage> {
                   color: Colors.black,
                 ),
               ),
-              _buildTopDeployedAlgorithms(),
+              _buildTopDeployedAlgorithms(userId),
               SizedBox(height: 20),
               Text(
                 'Algorithm List',
@@ -126,83 +124,128 @@ class _StrategyPageState extends State<StrategyPage> {
     );
   }
 
-  Widget _buildTopDeployedAlgorithms() {
-    return StreamBuilder<QuerySnapshot>(
+  Widget _buildTopDeployedAlgorithms(String userId) {
+    return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance
-          .collection('deployed_algo')
-          .orderBy('deploy_MSE', descending: false)
-          .limit(2)
+          .collection('users')
+          .doc(userId)
           .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+      builder: (context, userSnapshot) {
+        if (userSnapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
         }
-        if (snapshot.hasError) {
-          return Text('Error: ${snapshot.error}');
+        if (userSnapshot.hasError) {
+          return Text('Error: ${userSnapshot.error}');
         }
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return Text('No algorithms found');
+        if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
+          return _buildNoDeployedAlgorithmsCard();
         }
 
-        return Column(
-          children: snapshot.data!.docs.asMap().entries.map((entry) {
-            int idx = entry.key;
-            DocumentSnapshot algoDoc = entry.value;
-            String documentId = algoDoc.id; // Get the document ID here
+        var userDoc = userSnapshot.data!;
+        var deployedAlgoRefs = userDoc['deploy_algoID'] as List<dynamic>? ?? [];
 
-            return Card(
-              elevation: 4,
-              color: Colors.white.withOpacity(0.9),
-              child: ListTile(
-                leading: CircleAvatar(
-                  // Assuming getImageForRank returns an ImageProvider
-                  child: getImageForRank(idx),
-                ),
-                title: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      algoDoc['deploy_algoName'], // Algorithm name
+        if (deployedAlgoRefs.isEmpty) {
+          return _buildNoDeployedAlgorithmsCard();
+        }
+
+        return FutureBuilder<List<DocumentSnapshot>>(
+          future: Future.wait(
+              deployedAlgoRefs.map((ref) => (ref as DocumentReference).get())),
+          builder: (context, algoSnapshots) {
+            if (algoSnapshots.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            }
+            if (algoSnapshots.hasError) {
+              return Text('Error: ${algoSnapshots.error}');
+            }
+            if (!algoSnapshots.hasData || algoSnapshots.data!.isEmpty) {
+              return _buildNoDeployedAlgorithmsCard();
+            }
+
+            var algoDocs = algoSnapshots.data!;
+            algoDocs.sort((a, b) =>
+                (a['deploy_MSE'] as num).compareTo(b['deploy_MSE'] as num));
+
+            return Column(
+              children: algoDocs.take(2).map((algoDoc) {
+                String documentId = algoDoc.id; // Get the document ID here
+
+                return Card(
+                  elevation: 4,
+                  color: Colors.white.withOpacity(0.9),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      // Assuming getImageForRank returns an ImageProvider
+                      child: getImageForRank(algoDocs.indexOf(algoDoc)),
+                    ),
+                    title: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          algoDoc['deploy_algoName'], // Algorithm name
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          algoDoc['deploy_date'] != null
+                              ? DateFormat('yyyy-MM-dd h:mma')
+                                  .format(algoDoc['deploy_date'].toDate())
+                              : 'No date available', // Date formatted
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                    trailing: Text(
+                      algoDoc['deploy_stockTicker'], // Stock ticker
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: Colors.black,
                       ),
                     ),
-                    SizedBox(height: 4),
-                    Text(
-                      DateFormat('yyyy-MM-dd h:mma').format(
-                          algoDoc['deploy_date'].toDate()), // Date formatted
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
-                trailing: Text(
-                  algoDoc['deploy_stockTicker'], // Stock ticker
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
+                    onTap: () {
+                      // Pass the document ID to the details page
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              DeployedAlgoDetailsPage(documentId: documentId),
+                        ),
+                      );
+                    },
                   ),
-                ),
-                onTap: () {
-                  // Pass the document ID to the details page
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          DeployedAlgoDetailsPage(documentId: documentId),
-                    ),
-                  );
-                },
-              ),
+                );
+              }).toList(),
             );
-          }).toList(),
+          },
         );
       },
+    );
+  }
+
+  Widget _buildNoDeployedAlgorithmsCard() {
+    return Card(
+      elevation: 4,
+      color: Colors.white.withOpacity(0.9),
+      child: Container(
+        padding: EdgeInsets.all(16),
+        child: Center(
+          child: Text(
+            'No deployed algorithms found',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.black,
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -321,7 +364,6 @@ class _StrategyPageState extends State<StrategyPage> {
     );
   }
 
-// Inside the _buildDeployAlgorithmSection method
   Widget _buildDeployAlgorithmSection(String userId) {
     return StatefulBuilder(
       builder: (BuildContext context, StateSetter setState) {
@@ -369,6 +411,9 @@ class _StrategyPageState extends State<StrategyPage> {
                       List<dynamic> integratedAlgos = (snapshot.data!.data()
                               as Map<String, dynamic>)['integrated_algoID'] ??
                           [];
+                      if (integratedAlgos.isEmpty) {
+                        return Text('No algorithms found');
+                      }
                       return FutureBuilder<QuerySnapshot>(
                         future: FirebaseFirestore.instance
                             .collection('algorithm')
@@ -560,7 +605,7 @@ class _StrategyPageState extends State<StrategyPage> {
 
                         debugPrint('selectedalgo: $selectedAlgorithm');
                         debugPrint('selectedticker: $selectedStockTicker');
-                        // Obtain the algoName from the algorithm document using selectedAlgorithm as the document ID
+
                         var algoDocument = await FirebaseFirestore.instance
                             .collection('algorithm')
                             .doc(selectedAlgorithm)
@@ -583,6 +628,7 @@ class _StrategyPageState extends State<StrategyPage> {
                             headers: headers,
                             body: requestBody,
                           );
+
                           if (response.statusCode == 200) {
                             final Map<String, dynamic> responseData =
                                 json.decode(response.body);
@@ -616,6 +662,7 @@ class _StrategyPageState extends State<StrategyPage> {
                               'deploy_graph': plotDataString,
                               'deploy_date': FieldValue.serverTimestamp(),
                               'deploy_backtest': [],
+                              'userId': userId, // Add userId to the document
                             });
 
                             print(
@@ -625,7 +672,6 @@ class _StrategyPageState extends State<StrategyPage> {
                                 .instance
                                 .collection('users')
                                 .doc(userId);
-
                             FirebaseFirestore.instance
                                 .runTransaction((transaction) async {
                               DocumentSnapshot userSnapshot =
@@ -637,9 +683,7 @@ class _StrategyPageState extends State<StrategyPage> {
                                   FirebaseFirestore.instance
                                       .collection('deployed_algo')
                                       .doc(newAlgoRef.id);
-
                               deployedAlgos.add(deployedAlgoRef);
-
                               transaction.update(
                                   userRef, {'deploy_algoID': deployedAlgos});
                             }).then((result) {
@@ -648,6 +692,12 @@ class _StrategyPageState extends State<StrategyPage> {
                             }).catchError((error) {
                               print('Error updating user document: $error');
                             });
+
+                            // Show local notification
+                            Provider.of<NotificationProvider>(context,
+                                    listen: false)
+                                .showLocalNotification('Deployment Successful',
+                                    'Your algorithm has been deployed successfully.');
                           } else {
                             print(
                                 'Request failed with status: ${response.statusCode}.');
@@ -705,7 +755,6 @@ class _StrategyPageState extends State<StrategyPage> {
                   'Choosing within this range balances efficiency with predictive power.',
                   style: GoogleFonts.robotoCondensed(fontSize: 16),
                 ),
-                // Add more Text widgets for additional instructions
               ],
             ),
           ),
@@ -730,7 +779,7 @@ Image getImageForRank(int rank) {
     case 1:
       return Image.asset('assets/images/top2.png'); // Icon for the 2nd place
     case 2:
-      return Image.asset('assets/images/top3.png'); // Icon for the 3rd place
+      return Image.asset('assets/images/top3.png'); // Default icon
     default:
       return Image.asset('assets/images/algorithmIcon.png'); // Default icon
   }

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_signin_button/flutter_signin_button.dart';
 import 'package:qtrade_app/screen/homePage.dart';
-import 'package:qtrade_app/screen/onBoardingPage.dart';
+import 'package:qtrade_app/screen/loginPage.dart';
 import '../services/firebaseAuthenticationService.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SignUpPage extends StatefulWidget {
   @override
@@ -28,16 +29,32 @@ class _SignUpPageState extends State<SignUpPage> {
 
     if (password == confirmPassword && password.isNotEmpty) {
       try {
-        await _authService.signUp(
+        User user = await _authService.signUp(
           email: email,
           password: password,
           fullName: fullName,
         );
-        // If the sign-up is successful, navigate to the next screen or display a success message.
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => HomePage()),
-        ); // Make sure you define the '/home' route in your app
+
+        if (user != null) {
+          // Add default fields to Firestore using the user ID as the document ID
+          await _addDefaultUserFields(user.uid, email, fullName);
+
+          // Show a success message using Snackbar
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Account created successfully!'),
+            ),
+          );
+
+          // Delay for a few seconds before navigating to the login page
+          await Future.delayed(Duration(seconds: 2));
+
+          // Navigate to the login page
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => LoginPage()),
+          );
+        }
       } catch (e) {
         // If there is an error, show a dialog with the error message
         _showErrorDialog(e.toString());
@@ -45,6 +62,23 @@ class _SignUpPageState extends State<SignUpPage> {
     } else {
       _showErrorDialog('Passwords do not match or fields are empty.');
     }
+  }
+
+  Future<void> _addDefaultUserFields(
+      String uid, String email, String fullName) async {
+    final CollectionReference users =
+        FirebaseFirestore.instance.collection('users');
+
+    await users.doc(uid).set({
+      'assetPortfolio': 100000,
+      'rank': 'novice',
+      'deploy_algoID': [],
+      'holding_shares': [],
+      'integrated_algoID': [],
+      'paperTrading_transactionID': [],
+      'email': email,
+      'fullName': fullName,
+    });
   }
 
   void _showErrorDialog(String message) {
@@ -133,36 +167,11 @@ class _SignUpPageState extends State<SignUpPage> {
                 ),
               ),
               SizedBox(height: 16),
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: Divider(thickness: 1),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Text('or', style: GoogleFonts.robotoCondensed()),
-                  ),
-                  Expanded(
-                    child: Divider(thickness: 1),
-                  ),
-                ],
-              ),
-              SizedBox(height: 16),
-              SignInButton(
-                Buttons.Google,
-                text: "Sign up with Google",
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                onPressed: () {
-                  // TODO: Implement Google sign-up logic
-                },
-              ),
               TextButton(
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => OnboardingPage()),
+                    MaterialPageRoute(builder: (context) => LoginPage()),
                   );
                 },
                 child: Text(

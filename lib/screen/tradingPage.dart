@@ -7,11 +7,14 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:qtrade_app/services/notification_provider.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:qtrade_app/screen/s&p500TradingPage.dart';
 import '../widgets/customBottomNavigationBar.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 class TradingPage extends StatefulWidget {
   @override
@@ -22,6 +25,7 @@ class _TradingPageState extends State<TradingPage> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   Map<String, double> portfolioDistribution = {};
   bool isPositionsSelected = true; // Toggle state
+  final double transactionFeePercentage = 0.002; // 0.2% transaction fee
 
   @override
   void initState() {
@@ -123,7 +127,9 @@ class _TradingPageState extends State<TradingPage> {
       double executedPrice) async {
     // Convert quantity to double
     double quantity = (transaction['pt_quantity'] as num).toDouble();
-    double totalCost = executedPrice * quantity;
+    double transactionValue = executedPrice * quantity;
+    double totalCost =
+        transactionValue + (transactionValue * transactionFeePercentage);
 
     await transactionRef.update(
         {'pt_orderStatus': 'executed', 'pt_executedPrice': executedPrice});
@@ -170,6 +176,10 @@ class _TradingPageState extends State<TradingPage> {
         'hs_tickerSymbol': transaction['pt_stockSymbol']
       };
       holdings.add(newHolding);
+
+      Provider.of<NotificationProvider>(context, listen: false)
+          .showLocalNotification('Stock Buying Successful',
+              'Your order has been placed successfully.');
     }
 
     await userRef.update(
@@ -185,7 +195,9 @@ class _TradingPageState extends State<TradingPage> {
       double executedPrice) async {
     // Convert quantity to double
     double quantity = (transaction['pt_quantity'] as num).toDouble();
-    double totalRevenue = executedPrice * quantity;
+    double transactionValue = executedPrice * quantity;
+    double totalRevenue =
+        transactionValue - (transactionValue * transactionFeePercentage);
 
     await transactionRef.update(
         {'pt_orderStatus': 'executed', 'pt_executedPrice': executedPrice});
@@ -222,6 +234,9 @@ class _TradingPageState extends State<TradingPage> {
         }
 
         stockExists = true;
+        Provider.of<NotificationProvider>(context, listen: false)
+            .showLocalNotification('Stock Selling Successful',
+                'Your order has been placed successfully.');
         break;
       }
     }
@@ -305,7 +320,7 @@ class _TradingPageState extends State<TradingPage> {
         ),
       );
     }
-
+    double screenHeight = MediaQuery.of(context).size.height;
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -321,6 +336,7 @@ class _TradingPageState extends State<TradingPage> {
         ),
       ),
       body: Container(
+        height: screenHeight,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -347,10 +363,12 @@ class _TradingPageState extends State<TradingPage> {
               } else {
                 var holdings =
                     snapshot.data?['holding_shares'] as List<dynamic>? ?? [];
+
                 return Column(
                   children: [
                     OverviewCard(
-                        assetPortfolio: snapshot.data?['assetPortfolio']),
+                        assetPortfolio: snapshot.data?['assetPortfolio'],
+                        holdings: holdings),
                     PieChartSample2(
                         portfolioDistribution: portfolioDistribution),
                     TogglePositionsOrdersWidget(
@@ -415,15 +433,15 @@ class PieChartSample2 extends StatelessWidget {
                   child: Text(
                     'Portfolio Distribution',
                     style: GoogleFonts.robotoCondensed(
-                      fontSize: 18,
-                      color: Colors.black54,
-                    ),
+                        fontSize: 18,
+                        color: Colors.black54,
+                        fontWeight: FontWeight.bold),
                   ),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(5),
                   child: Text(
-                    'No data available for portfolio distribution',
+                    'No data available for portfolio distribution.\n Start investing in paper trading to see your portfolio distribution here.',
                     textAlign:
                         TextAlign.center, // This centers the text horizontally
                     style: GoogleFonts.robotoCondensed(
@@ -521,12 +539,93 @@ class PieChartSample2 extends StatelessWidget {
   }
 }
 
-class OverviewCard extends StatelessWidget {
+class OverviewCard extends StatefulWidget {
   final dynamic assetPortfolio;
-  OverviewCard({this.assetPortfolio});
+  final List<dynamic> holdings;
+
+  OverviewCard({required this.assetPortfolio, required this.holdings});
+
+  @override
+  _OverviewCardState createState() => _OverviewCardState();
+}
+
+class _OverviewCardState extends State<OverviewCard> {
+  Map<String, double> currentPrices = {};
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchCurrentPrices();
+  }
+
+  Future<void> fetchCurrentPrices() async {
+    for (var holding in widget.holdings) {
+      String ticker = holding['hs_tickerSymbol'];
+      double currentPrice = await getCurrentMarketPrice(ticker);
+      setState(() {
+        currentPrices[ticker] = currentPrice;
+      });
+    }
+
+    setState(() {
+      isLoading = false;
+    });
+  }
+
+  Future<double> getCurrentMarketPrice(String tickerSymbol) async {
+    final url = Uri.parse('http://10.0.2.2:5000/detailed_stock_info');
+    final response = await http.post(url,
+        body: jsonEncode({'ticker': tickerSymbol}),
+        headers: {'Content-Type': 'application/json'});
+    if (response.statusCode == 200) {
+      var data = jsonDecode(response.body);
+      return double.tryParse(data['currentClose'].toString()) ?? 0.0;
+    } else {
+      throw Exception('Failed to load stock data');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    double totalBuyInValue = 0;
+    double totalCurrentValue = 0;
+
+    for (var holding in widget.holdings) {
+      double buyInPrice = holding['hs_buyInPrice'] != null
+          ? double.parse(holding['hs_buyInPrice'].toString())
+          : 0.0;
+      double quantity = holding['hs_quantity'] != null
+          ? double.parse(holding['hs_quantity'].toString())
+          : 0.0;
+      double currentPrice = currentPrices[holding['hs_tickerSymbol']] != null
+          ? currentPrices[holding['hs_tickerSymbol']]!
+          : 0.0;
+
+      totalBuyInValue += buyInPrice * quantity;
+      totalCurrentValue += currentPrice * quantity;
+    }
+
+    double changePercentage = 0;
+    if (totalBuyInValue != 0) {
+      changePercentage =
+          ((totalCurrentValue - totalBuyInValue) / totalBuyInValue) * 100;
+    }
+
+    IconData indicatorIcon;
+    Color indicatorColor;
+
+    if (changePercentage > 0) {
+      indicatorIcon = Icons.arrow_upward;
+      indicatorColor = Colors.green;
+    } else if (changePercentage < 0) {
+      indicatorIcon = Icons.arrow_downward;
+      indicatorColor = Colors.red;
+    } else {
+      indicatorIcon = Icons.horizontal_rule;
+      indicatorColor = Colors.grey;
+    }
+
     return Card(
       margin: EdgeInsets.all(16),
       color: Color(0xFFeeeef7),
@@ -537,17 +636,44 @@ class OverviewCard extends StatelessWidget {
           children: [
             Text('Your total asset portfolio',
                 style: GoogleFonts.robotoCondensed(
-                    fontSize: 18, color: Colors.black54)),
+                    fontSize: 18,
+                    color: Colors.black54,
+                    fontWeight: FontWeight.bold)),
             SizedBox(height: 10),
-            Text('\$${assetPortfolio.toStringAsFixed(2)}',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.robotoCondensed(
-                    fontSize: 28, fontWeight: FontWeight.bold)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '\$${widget.assetPortfolio != null ? widget.assetPortfolio.toStringAsFixed(2) : '0.00'}',
+                  style: GoogleFonts.robotoCondensed(
+                      fontSize: 28, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(width: 10),
+                if (isLoading)
+                  SpinKitThreeBounce(
+                    color: Color.fromARGB(255, 168, 138, 245),
+                    size: 20.0,
+                  )
+                else ...[
+                  Icon(indicatorIcon, color: indicatorColor),
+                  Text(
+                    '${changePercentage.toStringAsFixed(2)}%',
+                    style: GoogleFonts.robotoCondensed(
+                      fontSize: 18,
+                      color: indicatorColor,
+                    ),
+                  ),
+                ],
+              ],
+            ),
             SizedBox(height: 16),
             ElevatedButton(
               onPressed: () => Navigator.push(context,
                   MaterialPageRoute(builder: (context) => SP500TradingPage())),
-              child: Text('Invest now'),
+              child: Text(
+                'Invest now',
+                style: GoogleFonts.robotoCondensed(),
+              ),
               style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFF0D0828),
                   foregroundColor: Colors.white),
@@ -590,8 +716,10 @@ class HoldingsDetailsCard extends StatelessWidget {
         child: holdings.isEmpty
             ? Center(
                 child: Text(
-                  'No holdings data available',
-                  style: TextStyle(fontSize: 16, color: Colors.black54),
+                  'No holdings data available. \n Make some investments to see your holdings here.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.robotoCondensed(
+                      fontSize: 16, color: Colors.black54),
                 ),
               )
             : ListView.builder(
@@ -776,8 +904,10 @@ class _TodaysOrdersCardState extends State<TodaysOrdersCard> {
         child: orders.isEmpty
             ? Center(
                 child: Text(
-                  'No orders found today',
-                  style: TextStyle(fontSize: 16, color: Colors.black54),
+                  'No orders found today.\n Place some orders to start building your investment portfolio.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.robotoCondensed(
+                      fontSize: 16, color: Colors.black54),
                 ),
               )
             : ListView(
@@ -876,14 +1006,14 @@ class _TogglePositionsOrdersWidgetState
                   padding: EdgeInsets.symmetric(horizontal: 30),
                   child: Text(
                     'Positions',
-                    style: TextStyle(fontSize: 16),
+                    style: GoogleFonts.robotoCondensed(fontSize: 16),
                   ),
                 ),
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 30),
                   child: Text(
                     "Today's Orders",
-                    style: TextStyle(fontSize: 16),
+                    style: GoogleFonts.robotoCondensed(fontSize: 16),
                   ),
                 ),
               ],
