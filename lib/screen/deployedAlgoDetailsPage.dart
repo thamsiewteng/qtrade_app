@@ -634,8 +634,14 @@ class _DeployedAlgoDetailsPageState extends State<DeployedAlgoDetailsPage> {
                                 badThreshold: 2,
                               ),
                               AnalysisMetricCard(
-                                title: 'Trend Insight',
-                                value: data['deploy_trendInsight'] ?? '',
+                                title: 'Trend Insight 7days',
+                                value: data['deploy_trendInsight7D'] ?? '',
+                                goodThreshold: 'Uptrend',
+                                badThreshold: 'Downtrend',
+                              ),
+                              AnalysisMetricCard(
+                                title: 'Trend Insight 30days',
+                                value: data['deploy_trendInsight30D'] ?? '',
                                 goodThreshold: 'Uptrend',
                                 badThreshold: 'Downtrend',
                               ),

@@ -636,6 +636,8 @@ class _StrategyPageState extends State<StrategyPage> {
                                 responseData['performance_metrics'];
                             final Map<String, dynamic> plotData =
                                 responseData['plot_data'];
+                            final Map<String, dynamic> trendInsight =
+                                responseData['trend_insight'];
 
                             String plotDataString = json.encode(plotData);
                             DocumentReference newAlgoRef =
@@ -653,8 +655,9 @@ class _StrategyPageState extends State<StrategyPage> {
                               'deploy_R2': performanceMetrics['R2'],
                               'deploy_MAPE': performanceMetrics['MAPE'],
                               'deploy_volatility': responseData['volatility'],
-                              'deploy_trendInsight':
-                                  responseData['trend_insight'],
+                              'deploy_trendInsight7D': trendInsight['7day_MA'],
+                              'deploy_trendInsight30D':
+                                  trendInsight['30day_MA'],
                               'deploy_RSI': responseData['rsi'],
                               'deploy_marketCap': responseData['market_cap'],
                               'deploy_beta': responseData['beta'],
@@ -662,7 +665,6 @@ class _StrategyPageState extends State<StrategyPage> {
                               'deploy_graph': plotDataString,
                               'deploy_date': FieldValue.serverTimestamp(),
                               'deploy_backtest': [],
-                              'userId': userId, // Add userId to the document
                             });
 
                             print(

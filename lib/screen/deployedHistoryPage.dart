@@ -87,7 +87,16 @@ class DeployedHistoryPage extends StatelessWidget {
                   return Center(child: Text('No Deployments Found'));
                 }
 
-                var algoDocs = algoSnapshots.data!;
+                var algoDocs = algoSnapshots.data!
+                    .where((doc) =>
+                        (doc.data()
+                            as Map<String, dynamic>)['deploy_algoName'] ==
+                        algoName)
+                    .toList();
+
+                if (algoDocs.isEmpty) {
+                  return Center(child: Text('No Deployments Found'));
+                }
 
                 return ListView.builder(
                   itemCount: algoDocs.length,
