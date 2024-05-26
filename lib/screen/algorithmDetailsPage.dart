@@ -130,6 +130,10 @@ class AlgorithmDetailsPage extends StatelessWidget {
                           child: Text('Integrate now',
                               style: GoogleFonts.robotoCondensed()),
                           style: ElevatedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                  10), // Button border radius
+                            ),
                             backgroundColor: Color(0xFF0D0828),
                             foregroundColor: Colors.white,
                           ),

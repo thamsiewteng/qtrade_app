@@ -253,8 +253,18 @@ class _HomePageState extends State<HomePage> {
                                   MaterialPageRoute(
                                       builder: (context) =>
                                           SP500TradingPage())),
-                              child: Text('Invest now'),
+                              child: Text(
+                                'Invest now',
+                                style: GoogleFonts.robotoCondensed(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.normal,
+                                ),
+                              ),
                               style: ElevatedButton.styleFrom(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                      10), // Button border radius
+                                ),
                                 backgroundColor:
                                     Color(0xFF0D0828), // Background color
                                 foregroundColor: Colors.white, // Text color

@@ -73,7 +73,6 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
-        leading: BackButton(color: Colors.black),
         elevation: 0,
         title: Text('Login', style: GoogleFonts.roboto(color: Colors.black)),
       ),

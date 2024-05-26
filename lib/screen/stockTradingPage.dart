@@ -89,7 +89,17 @@ class CandlestickChart extends StatelessWidget {
         primaryXAxis: NumericAxis(
           majorGridLines: MajorGridLines(width: 1),
           minorGridLines: MinorGridLines(width: 0.5),
-          title: AxisTitle(text: 'Trading Periods'),
+          title: AxisTitle(text: 'Date'),
+          labelFormat: '{value}',
+          axisLabelFormatter: (axisLabelRenderArgs) {
+            int index = axisLabelRenderArgs.value.toInt();
+            if (index >= 0 && index < candles.length) {
+              return ChartAxisLabel(
+                  DateFormat.MMMd().format(candles[index].datetime),
+                  TextStyle(color: Colors.black));
+            }
+            return ChartAxisLabel('', TextStyle(color: Colors.black));
+          },
         ),
         primaryYAxis: NumericAxis(
           numberFormat: NumberFormat.simpleCurrency(decimalDigits: 2),
@@ -112,20 +122,7 @@ class CandlestickChart extends StatelessWidget {
             bullColor: Colors.green,
           )
         ],
-        trackballBehavior: TrackballBehavior(
-          enable: true,
-          activationMode: ActivationMode.singleTap,
-          lineType: TrackballLineType.vertical,
-          tooltipSettings: InteractiveTooltip(
-            enable: true,
-            color: Colors.white,
-            borderWidth: 1,
-            borderColor: Colors.black,
-            textStyle: TextStyle(color: Colors.black),
-            format:
-                'Open: \$point.open\nHigh: \$point.high\nLow: \$point.low\nClose: \$point.close\nDate: ${DateFormat.yMMMd().format(DateTime.now())}',
-          ),
-        ),
+        trackballBehavior: trackballBehavior,
       ),
     );
   }
@@ -169,7 +166,17 @@ class LineChart extends StatelessWidget {
         primaryXAxis: NumericAxis(
           majorGridLines: MajorGridLines(width: 1),
           minorGridLines: MinorGridLines(width: 0.5),
-          title: AxisTitle(text: 'Trading Periods'),
+          title: AxisTitle(text: 'Date'),
+          labelFormat: '{value}',
+          axisLabelFormatter: (axisLabelRenderArgs) {
+            int index = axisLabelRenderArgs.value.toInt();
+            if (index >= 0 && index < candles.length) {
+              return ChartAxisLabel(
+                  DateFormat.MMMd().format(candles[index].datetime),
+                  TextStyle(color: Colors.black));
+            }
+            return ChartAxisLabel('', TextStyle(color: Colors.black));
+          },
         ),
         primaryYAxis: NumericAxis(
           numberFormat: NumberFormat.simpleCurrency(decimalDigits: 2),
@@ -198,7 +205,7 @@ class LineChart extends StatelessWidget {
             borderWidth: 1,
             borderColor: Colors.black,
             textStyle: TextStyle(color: Colors.black),
-            format: 'Date: ${DateFormat.yMMMd().format(DateTime.now())}',
+            format: 'Close: \$point.y',
           ),
         ),
       ),
@@ -376,12 +383,12 @@ class _StockTradingPageState extends State<StockTradingPage> {
   late Future<List<Candle>> candleData;
   late Future<StockInfo> stockInfo;
   late TrackballBehavior _trackballBehavior;
-  String selectedPeriod = '1h';
-  String selectedInterval = '1m';
+  String selectedPeriod = '24h';
+  String selectedInterval = '15m';
   double currentPrice = 0;
 
   bool showCandleChart = true;
-  bool isCandlestickChart = true; // Added to manage chart type
+  bool isCandlestickChart = true;
   @override
   void initState() {
     super.initState();
@@ -484,6 +491,10 @@ class _StockTradingPageState extends State<StockTradingPage> {
                         });
                       },
                       style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(10), // Button border radius
+                        ),
                         backgroundColor: selectedPeriod == entry.key
                             ? Color(0xFF0D0828)
                             : Colors.white,
@@ -513,7 +524,8 @@ class _StockTradingPageState extends State<StockTradingPage> {
                       ),
                       elevation: 4,
                       child: Padding(
-                        padding: const EdgeInsets.all(4.0),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8.0, vertical: 4.0),
                         child: ToggleButtons(
                           borderRadius: BorderRadius.circular(10),
                           selectedBorderColor: Color(0xFF0D0828),
@@ -535,7 +547,7 @@ class _StockTradingPageState extends State<StockTradingPage> {
                           children: [
                             Container(
                               padding:
-                                  const EdgeInsets.symmetric(horizontal: 12.0),
+                                  const EdgeInsets.symmetric(horizontal: 26.0),
                               child: Text(
                                 'Candlestick Chart',
                                 style: TextStyle(
@@ -548,7 +560,7 @@ class _StockTradingPageState extends State<StockTradingPage> {
                             ),
                             Container(
                               padding:
-                                  const EdgeInsets.symmetric(horizontal: 12.0),
+                                  const EdgeInsets.symmetric(horizontal: 26.0),
                               child: Text(
                                 'Line Graph',
                                 style: TextStyle(
@@ -1127,7 +1139,7 @@ void _showBuyDialog(BuildContext context, String tickerSymbol,
                         foregroundColor: Colors.black,
                         minimumSize: Size(double.infinity, 36),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                       ),
                     ),
@@ -1326,7 +1338,7 @@ void _showSellDialog(BuildContext context, String tickerSymbol,
                         foregroundColor: Colors.black,
                         minimumSize: Size(double.infinity, 36),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                       ),
                     ),
