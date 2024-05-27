@@ -28,8 +28,6 @@ class _SP500TradingPageState extends State<SP500TradingPage> {
   }
 
   Future<List<StockInfo>> fetchStockData() async {
-    // Fetch your stock data and return a list of StockInfo objects
-    // This is just a placeholder, replace it with your actual data fetching logic
     return await StockService().fetchStocks();
   }
 
@@ -59,110 +57,95 @@ class _SP500TradingPageState extends State<SP500TradingPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Color.fromARGB(255, 188, 208, 225),
+        leading: BackButton(color: Colors.white),
+        backgroundColor: Color(0xFF0D0828),
         elevation: 0,
         title: Text(
           'S&P 500 Trading',
           style: GoogleFonts.robotoCondensed(
             fontSize: 30,
             fontWeight: FontWeight.bold,
-            color: Colors.black,
+            color: Colors.white,
           ),
         ),
       ),
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color.fromARGB(255, 188, 208, 225),
-              Color.fromARGB(255, 168, 185, 229),
-            ],
-          ),
+          color: Colors.white,
         ),
         child: Column(
           children: [
-            Autocomplete<String>(
-              optionsBuilder: (TextEditingValue textEditingValue) {
-                if (textEditingValue.text.isEmpty) {
-                  return const Iterable<String>.empty();
-                } else {
-                  var searchText = textEditingValue.text.toLowerCase();
-                  return allCompanyNames.where((allCompanyNames) =>
-                      allCompanyNames.toLowerCase().startsWith(searchText));
-                  // .followedBy(allCompanyNames.where(
-                  //     (name) => name.toLowerCase().startsWith(searchText)));
-                }
-              },
-              onSelected: (String selection) {
-                debugPrint('You selected: $selection');
-
-                // Make sure the lists are populated correctly
-                debugPrint('All company names: $allCompanyNames');
-                debugPrint('All tickers: $allTickers');
-
-                // Find the index using case-insensitive comparison, trimming whitespace
-                int index = allCompanyNames.indexWhere((name) =>
-                    name.trim().toLowerCase() ==
-                    selection.trim().toLowerCase());
-
-                // Use debugPrint to check if the index is found or not
-                if (index != -1) {
-                  debugPrint('Index found: $index');
-                  String tickerSymbol = allTickers[index];
-                  debugPrint(
-                      'Ticker symbol for selected company is: $tickerSymbol');
-
-                  // Navigate to the StockTradingPage with the ticker symbol
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          StockTradingPage(tickerSymbol: tickerSymbol),
-                    ),
-                  );
-                } else {
-                  debugPrint(
-                      'Index not found for the company name: $selection');
-                }
-              },
-              fieldViewBuilder: (
-                BuildContext context,
-                TextEditingController fieldTextEditingController,
-                FocusNode fieldFocusNode,
-                VoidCallback onFieldSubmitted,
-              ) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8.0,
-                      vertical: 4.0), // Adjust to match card margin
-                  child: TextField(
-                    controller: fieldTextEditingController,
-                    focusNode: fieldFocusNode,
-                    style: GoogleFonts.robotoCondensed(),
-                    decoration: InputDecoration(
-                      hintText: 'Search assets',
-                      prefixIcon: Icon(Icons.search),
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16.0,
-                          vertical: 10.0), // Adjust to match card padding
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(
-                            18), // Adjust to match card border radius
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
             SizedBox(height: 20),
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+              child: Material(
+                elevation: 4.0,
+                shadowColor: Colors.grey.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(10),
+                child: Autocomplete<String>(
+                  optionsBuilder: (TextEditingValue textEditingValue) {
+                    if (textEditingValue.text.isEmpty) {
+                      return const Iterable<String>.empty();
+                    } else {
+                      var searchText = textEditingValue.text.toLowerCase();
+                      return allCompanyNames.where((allCompanyNames) =>
+                          allCompanyNames.toLowerCase().startsWith(searchText));
+                    }
+                  },
+                  onSelected: (String selection) {
+                    debugPrint('You selected: $selection');
+                    int index = allCompanyNames.indexWhere((name) =>
+                        name.trim().toLowerCase() ==
+                        selection.trim().toLowerCase());
+                    if (index != -1) {
+                      debugPrint('Index found: $index');
+                      String tickerSymbol = allTickers[index];
+                      debugPrint(
+                          'Ticker symbol for selected company is: $tickerSymbol');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              StockTradingPage(tickerSymbol: tickerSymbol),
+                        ),
+                      );
+                    } else {
+                      debugPrint(
+                          'Index not found for the company name: $selection');
+                    }
+                  },
+                  fieldViewBuilder: (
+                    BuildContext context,
+                    TextEditingController fieldTextEditingController,
+                    FocusNode fieldFocusNode,
+                    VoidCallback onFieldSubmitted,
+                  ) {
+                    return TextField(
+                      controller: fieldTextEditingController,
+                      focusNode: fieldFocusNode,
+                      style: GoogleFonts.robotoCondensed(),
+                      decoration: InputDecoration(
+                        hintText: 'Search assets',
+                        prefixIcon: Icon(Icons.search),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: EdgeInsets.symmetric(
+                            horizontal: 16.0, vertical: 10.0),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            SizedBox(height: 10),
             Expanded(
               child: FutureBuilder<List<StockInfo>>(
-                future: futureStocks, // Use futureStocks here
+                future: futureStocks,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Center(child: CircularProgressIndicator());
@@ -171,7 +154,6 @@ class _SP500TradingPageState extends State<SP500TradingPage> {
                   } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                     return Center(child: Text('No stock data available'));
                   } else {
-                    // Filter the list of stocks based on the search query
                     var filteredStocks = snapshot.data!
                         .where((stock) =>
                             stock.ticker.toLowerCase().contains(
@@ -186,8 +168,8 @@ class _SP500TradingPageState extends State<SP500TradingPage> {
                       itemBuilder: (context, index) {
                         var stock = filteredStocks[index];
                         var trendImage = stock.changePercent >= 0
-                            ? 'assets/images/trend_up.png' // Replace with your asset image for an upward trend
-                            : 'assets/images/trend_down.png'; // Replace with your asset image for a downward trend
+                            ? 'assets/images/trend_up.png'
+                            : 'assets/images/trend_down.png';
 
                         return GestureDetector(
                           onTap: () {
@@ -235,7 +217,7 @@ class _SP500TradingPageState extends State<SP500TradingPage> {
                                   ),
                                   Image.asset(
                                     trendImage,
-                                    height: 20.0, // Set the image size
+                                    height: 20.0,
                                   ),
                                   SizedBox(width: 10),
                                   RichText(
@@ -277,7 +259,7 @@ class _SP500TradingPageState extends State<SP500TradingPage> {
         ),
       ),
       bottomNavigationBar: CustomBottomNavigationBar(
-        currentIndex: 3, // Assuming AlgorithmPage is the second tab
+        currentIndex: 3,
         onTap: (index) {},
       ),
     );
@@ -329,7 +311,6 @@ class StockService {
     }
   }
 
-  // New function to fetch tickers
   Future<List<String>> fetchTickers() async {
     var collection = FirebaseFirestore.instance.collection('s&p500');
     var docSnapshot = await collection.doc('tickers').get();

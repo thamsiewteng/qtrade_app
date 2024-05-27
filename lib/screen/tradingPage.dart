@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -12,9 +11,10 @@ import 'package:qtrade_app/services/notification_provider.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:qtrade_app/screen/s&p500TradingPage.dart';
-import '../widgets/customBottomNavigationBar.dart';
+import 'package:qtrade_app/widgets/customBottomNavigationBar.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
 
 class TradingPage extends StatefulWidget {
   @override
@@ -162,6 +162,11 @@ class _TradingPageState extends State<TradingPage> {
 
         holding['hs_quantity'] = newQuantity;
         holding['hs_buyInPrice'] = newBuyInPrice;
+
+        Provider.of<NotificationProvider>(context, listen: false)
+            .showLocalNotification('Stock Buying Successful',
+                'Your order has been placed successfully.');
+
         stockExists = true;
         break;
       }
@@ -324,28 +329,21 @@ class _TradingPageState extends State<TradingPage> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: Color.fromARGB(255, 188, 208, 225),
+        backgroundColor: Color(0xFF0D0828),
         elevation: 0,
         title: Text(
           'Trading',
           style: GoogleFonts.robotoCondensed(
             fontSize: 30,
             fontWeight: FontWeight.bold,
-            color: Colors.black,
+            color: Colors.white,
           ),
         ),
       ),
       body: Container(
         height: screenHeight,
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color.fromARGB(255, 188, 208, 225),
-              Color.fromARGB(255, 168, 185, 229),
-            ],
-          ),
+          color: Colors.white,
         ),
         child: SingleChildScrollView(
           child: FutureBuilder<DocumentSnapshot>(
@@ -407,7 +405,6 @@ class PieChartSample2 extends StatelessWidget {
     Color.fromARGB(255, 151, 211, 158),
   ];
 
-  // Method to get color by index
   Color getColorByIndex(int index) {
     return customColors[index % customColors.length];
   }
@@ -457,22 +454,28 @@ class PieChartSample2 extends StatelessWidget {
       );
     }
 
-    final List<PieChartSectionData> sections =
-        portfolioDistribution.entries.map((entry) {
-      final colorIndex = portfolioDistribution.keys.toList().indexOf(entry.key);
-      final color = getColorByIndex(colorIndex);
-      return PieChartSectionData(
-        color: color,
-        value: entry.value,
-        title: '${(entry.value).toStringAsFixed(2)}%',
-        titleStyle: TextStyle(
-            fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
-        radius: 60,
-        showTitle: true,
-        titlePositionPercentageOffset:
-            0.55, // Adjust the position of the title as needed
-      );
-    }).toList();
+    final List<DoughnutSeries<MapEntry<String, double>, String>> series = [
+      DoughnutSeries<MapEntry<String, double>, String>(
+        dataSource: portfolioDistribution.entries.toList(),
+        xValueMapper: (MapEntry<String, double> data, _) => data.key,
+        yValueMapper: (MapEntry<String, double> data, _) => data.value,
+        pointColorMapper: (MapEntry<String, double> data, int index) =>
+            getColorByIndex(index),
+        dataLabelSettings: DataLabelSettings(
+          isVisible: true,
+          textStyle: GoogleFonts.robotoCondensed(
+            textStyle: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+        ),
+        dataLabelMapper: (MapEntry<String, double> data, _) =>
+            '${data.value.toStringAsFixed(2)}%',
+        animationDuration: 2000,
+      )
+    ];
 
     return Card(
       margin: EdgeInsets.all(16),
@@ -481,7 +484,6 @@ class PieChartSample2 extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // SizedBox(height: 10),
             Padding(
               padding:
                   const EdgeInsets.only(bottom: 5), // Spacing above the title
@@ -496,14 +498,10 @@ class PieChartSample2 extends StatelessWidget {
             ),
             Container(
               padding: EdgeInsets.symmetric(
-                  vertical: 8), // Padding around the pie chart
-              height: 220, // Adjust size as necessary
-              child: PieChart(
-                PieChartData(
-                  centerSpaceRadius: 40,
-                  sections: sections,
-                  sectionsSpace: 2, // Optional: add space between sections
-                ),
+                  vertical: 4), // Padding around the pie chart
+              height: 300, // Adjust size as necessary
+              child: SfCircularChart(
+                series: series,
               ),
             ),
             // Adding a legend
@@ -525,18 +523,29 @@ class PieChartSample2 extends StatelessWidget {
                         CircleAvatar(radius: 5, backgroundColor: color),
                         SizedBox(width: 6),
                         Text(
-                            '${entry.key}: ${(entry.value).toStringAsFixed(2)}%'),
+                          '${entry.key}: ${(entry.value).toStringAsFixed(2)}%',
+                          style: GoogleFonts.robotoCondensed(
+                            fontSize: 14,
+                            color: Colors.black,
+                          ),
+                        ),
                       ],
                     ),
                   );
                 }).toList(),
               ),
-            )
+            ),
           ],
         ),
       ),
     );
   }
+}
+
+class PieData {
+  PieData(this.category, this.value);
+  final String category;
+  final double value;
 }
 
 class OverviewCard extends StatefulWidget {
@@ -625,67 +634,80 @@ class _OverviewCardState extends State<OverviewCard> {
       indicatorIcon = Icons.horizontal_rule;
       indicatorColor = Colors.grey;
     }
-
-    return Card(
+    return Container(
       margin: EdgeInsets.all(16),
-      color: Color(0xFFeeeef7),
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('Your total asset portfolio',
-                style: GoogleFonts.robotoCondensed(
-                    fontSize: 18,
-                    color: Colors.black54,
-                    fontWeight: FontWeight.bold)),
-            SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '\$${widget.assetPortfolio != null ? widget.assetPortfolio.toStringAsFixed(2) : '0.00'}',
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFeeeef7), Color(0xFFc0c4ff)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Card(
+        color: Colors.transparent, // To make the card transparent
+        elevation: 0, // Remove card shadow
+        margin: EdgeInsets.all(0), // Remove card margin
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Your total asset portfolio',
                   style: GoogleFonts.robotoCondensed(
-                      fontSize: 28, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(width: 10),
-                if (isLoading)
-                  SpinKitThreeBounce(
-                    color: Color.fromARGB(255, 168, 138, 245),
-                    size: 20.0,
-                  )
-                else ...[
-                  Icon(indicatorIcon, color: indicatorColor),
-                  Text(
-                    '${changePercentage.toStringAsFixed(2)}%',
-                    style: GoogleFonts.robotoCondensed(
                       fontSize: 18,
-                      color: indicatorColor,
+                      color: Colors.black54,
+                      fontWeight: FontWeight.bold)),
+              SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '\$${widget.assetPortfolio != null ? widget.assetPortfolio.toStringAsFixed(2) : '0.00'}',
+                    style: GoogleFonts.robotoCondensed(
+                        fontSize: 28, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(width: 10),
+                  if (isLoading)
+                    SpinKitThreeBounce(
+                      color: Color.fromARGB(255, 168, 138, 245),
+                      size: 20.0,
+                    )
+                  else ...[
+                    Icon(indicatorIcon, color: indicatorColor),
+                    Text(
+                      '${changePercentage.toStringAsFixed(2)}%',
+                      style: GoogleFonts.robotoCondensed(
+                        fontSize: 18,
+                        color: indicatorColor,
+                      ),
                     ),
-                  ),
+                  ],
                 ],
-              ],
-            ),
-            SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => SP500TradingPage())),
-              child: Text(
-                'Invest now',
-                style: GoogleFonts.robotoCondensed(
-                  fontSize: 18,
-                  fontWeight: FontWeight.normal,
-                ),
               ),
-              style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(10), // Button border radius
+              SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => SP500TradingPage())),
+                child: Text(
+                  'Invest now',
+                  style: GoogleFonts.robotoCondensed(
+                    fontSize: 18,
+                    fontWeight: FontWeight.normal,
                   ),
-                  backgroundColor: Color(0xFF0D0828),
-                  foregroundColor: Colors.white),
-            ),
-          ],
+                ),
+                style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(10), // Button border radius
+                    ),
+                    backgroundColor: Color(0xFF0D0828),
+                    foregroundColor: Colors.white),
+              ),
+            ],
+          ),
         ),
       ),
     );

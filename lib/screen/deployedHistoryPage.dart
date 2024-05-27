@@ -26,13 +26,13 @@ class DeployedHistoryPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: BackButton(color: Colors.black), // Added back button
-        backgroundColor: Color.fromARGB(255, 188, 208, 225),
+        leading: BackButton(color: Colors.white), // Added back button
+        backgroundColor: Color(0xFF0D0828),
         elevation: 0,
         title: Text(
           'History',
           style: GoogleFonts.robotoCondensed(
-            color: Colors.black,
+            color: Colors.white,
             fontSize: 30,
             fontWeight: FontWeight.bold,
           ),
@@ -40,14 +40,7 @@ class DeployedHistoryPage extends StatelessWidget {
       ),
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color.fromARGB(255, 188, 208, 225),
-              Color.fromARGB(255, 168, 185, 229),
-            ],
-          ),
+          color: Colors.white,
         ),
         child: StreamBuilder<DocumentSnapshot>(
           stream: FirebaseFirestore.instance

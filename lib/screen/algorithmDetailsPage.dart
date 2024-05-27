@@ -44,10 +44,15 @@ class AlgorithmDetailsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Color.fromARGB(255, 188, 208, 225),
+        leading: BackButton(color: Colors.white),
+        backgroundColor: Color(0xFF0D0828),
         title: Text(
           'Algorithm Details',
-          style: GoogleFonts.robotoCondensed(color: Colors.black),
+          style: GoogleFonts.robotoCondensed(
+            color: Colors.white,
+            fontSize: 30,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
       body: FutureBuilder<DocumentSnapshot>(
@@ -69,14 +74,7 @@ class AlgorithmDetailsPage extends StatelessWidget {
           var data = snapshot.data!.data() as Map<String, dynamic>;
           return Container(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color.fromARGB(255, 188, 208, 225),
-                  Color.fromARGB(255, 168, 185, 229)
-                ],
-              ),
+              color: Colors.white,
             ),
             child: SingleChildScrollView(
               child: Padding(

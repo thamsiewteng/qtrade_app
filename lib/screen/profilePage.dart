@@ -70,27 +70,20 @@ class _ProfilePageState extends State<ProfilePage> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: Color.fromARGB(255, 188, 208, 225),
+        backgroundColor: Color(0xFF0D0828),
         elevation: 0,
         title: Text(
           'Profile',
           style: GoogleFonts.robotoCondensed(
             fontSize: 30,
             fontWeight: FontWeight.bold,
-            color: Colors.black,
+            color: Colors.white,
           ),
         ),
       ),
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color.fromARGB(255, 188, 208, 225),
-              Color.fromARGB(255, 168, 185, 229),
-            ],
-          ),
+          color: Colors.white,
         ),
         child: Column(
           children: [
@@ -127,13 +120,13 @@ class _ProfilePageState extends State<ProfilePage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                backgroundColor: Color.fromARGB(255, 230, 79, 68),
+                backgroundColor: Color.fromARGB(255, 242, 184, 184),
               ),
               child: Text(
                 'Log Out',
                 style: GoogleFonts.robotoCondensed(
                   fontSize: 18,
-                  color: Colors.white,
+                  color: Colors.black,
                 ),
               ),
             ),

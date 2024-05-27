@@ -78,6 +78,14 @@ class CandlestickChart extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.5),
+            spreadRadius: 2,
+            blurRadius: 5,
+            offset: Offset(0, 3), // changes position of shadow
+          ),
+        ],
       ),
       child: SfCartesianChart(
         zoomPanBehavior: ZoomPanBehavior(
@@ -155,6 +163,14 @@ class LineChart extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.5),
+            spreadRadius: 2,
+            blurRadius: 5,
+            offset: Offset(0, 3), // changes position of shadow
+          ),
+        ],
       ),
       child: SfCartesianChart(
         zoomPanBehavior: ZoomPanBehavior(
@@ -192,22 +208,10 @@ class LineChart extends StatelessWidget {
             xValueMapper: (Candle candle, int index) => index,
             yValueMapper: (Candle candle, _) => candle.close,
             enableTooltip: true,
-            color: Colors.blue,
+            color: const Color.fromARGB(255, 44, 33, 243),
           ),
         ],
-        trackballBehavior: TrackballBehavior(
-          enable: true,
-          activationMode: ActivationMode.singleTap,
-          lineType: TrackballLineType.vertical,
-          tooltipSettings: InteractiveTooltip(
-            enable: true,
-            color: Colors.white,
-            borderWidth: 1,
-            borderColor: Colors.black,
-            textStyle: TextStyle(color: Colors.black),
-            format: 'Close: \$point.y',
-          ),
-        ),
+        trackballBehavior: trackballBehavior,
       ),
     );
   }
@@ -430,27 +434,21 @@ class _StockTradingPageState extends State<StockTradingPage> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Color.fromARGB(255, 188, 208, 225),
+        leading: BackButton(color: Colors.white),
+        backgroundColor: Color(0xFF0D0828),
         elevation: 0,
         title: Text(
           'S&P 500 Trading',
           style: GoogleFonts.robotoCondensed(
             fontSize: 30,
             fontWeight: FontWeight.bold,
-            color: Colors.black,
+            color: Colors.white,
           ),
         ),
       ),
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color.fromARGB(255, 188, 208, 225),
-              Color.fromARGB(255, 168, 185, 229),
-            ],
-          ),
+          color: Colors.white,
         ),
         child: SingleChildScrollView(
           physics: BouncingScrollPhysics(),
@@ -641,7 +639,8 @@ class _StockTradingPageState extends State<StockTradingPage> {
                         ),
                         child: Text(
                           'Buy',
-                          style: TextStyle(color: Colors.black),
+                          style: GoogleFonts.robotoCondensed(
+                              fontSize: 16, color: Colors.black),
                         ),
                       ),
                     ),
@@ -694,7 +693,8 @@ class _StockTradingPageState extends State<StockTradingPage> {
                         ),
                         child: Text(
                           'Sell',
-                          style: TextStyle(color: Colors.black),
+                          style: GoogleFonts.robotoCondensed(
+                              fontSize: 16, color: Colors.black),
                         ),
                       ),
                     ),
@@ -1133,10 +1133,14 @@ void _showBuyDialog(BuildContext context, String tickerSymbol,
                           );
                         }
                       },
-                      child: Text('Buy'),
+                      child: Text(
+                        'Buy',
+                        style: GoogleFonts.robotoCondensed(
+                          color: Colors.black,
+                        ),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Color.fromARGB(255, 180, 228, 166),
-                        foregroundColor: Colors.black,
                         minimumSize: Size(double.infinity, 36),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -1332,10 +1336,14 @@ void _showSellDialog(BuildContext context, String tickerSymbol,
                           );
                         }
                       },
-                      child: Text('Sell'),
+                      child: Text(
+                        'Sell',
+                        style: GoogleFonts.robotoCondensed(
+                          color: Colors.black,
+                        ),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Color.fromARGB(255, 242, 184, 184),
-                        foregroundColor: Colors.black,
                         minimumSize: Size(double.infinity, 36),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),

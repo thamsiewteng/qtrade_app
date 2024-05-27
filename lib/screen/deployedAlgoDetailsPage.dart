@@ -248,13 +248,13 @@ class _DeployedAlgoDetailsPageState extends State<DeployedAlgoDetailsPage> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: BackButton(color: Colors.black),
-        backgroundColor: Color.fromARGB(255, 188, 208, 225),
+        leading: BackButton(color: Colors.white),
+        backgroundColor: Color(0xFF0D0828),
         elevation: 0,
         title: Text(
           'Deploy Result',
           style: GoogleFonts.robotoCondensed(
-            color: Colors.black,
+            color: Colors.white,
             fontSize: 30,
             fontWeight: FontWeight.bold,
           ),
@@ -262,14 +262,7 @@ class _DeployedAlgoDetailsPageState extends State<DeployedAlgoDetailsPage> {
       ),
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color.fromARGB(255, 188, 208, 225),
-              Color.fromARGB(255, 168, 185, 229),
-            ],
-          ),
+          color: Colors.white,
         ),
         child: FutureBuilder<DocumentSnapshot>(
           future: firestore
@@ -339,6 +332,60 @@ class _DeployedAlgoDetailsPageState extends State<DeployedAlgoDetailsPage> {
                 children: [
                   SizedBox(height: 20),
                   Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Container(
+                      width: double.infinity,
+                      child: Card(
+                        elevation: 5,
+                        shadowColor: Colors.grey.withOpacity(0.5),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Color.fromARGB(255, 176, 168, 229),
+                                Color(0xFFDADAE6)
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('$formattedDeployedDate',
+                                    style: GoogleFonts.robotoCondensed(
+                                        fontSize: 16, color: Colors.black)),
+                                Center(
+                                  child: Column(
+                                    children: [
+                                      Text('$deployTicker',
+                                          style: GoogleFonts.robotoCondensed(
+                                              fontSize: 32,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.black)),
+                                      Align(
+                                        alignment: Alignment.centerRight,
+                                        child: Text('$deployName',
+                                            style: GoogleFonts.robotoCondensed(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.black)),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Padding(
                     padding: const EdgeInsets.only(left: 16.0),
                     child: Text(
                       'Actual vs Predicted',
@@ -348,126 +395,184 @@ class _DeployedAlgoDetailsPageState extends State<DeployedAlgoDetailsPage> {
                       ),
                     ),
                   ),
-                  SizedBox(height: 10),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
+                  SizedBox(height: 20),
+                  Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Container(
-                      width: graphWidth,
-                      child: AspectRatio(
-                        aspectRatio: 2,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          padding: const EdgeInsets.all(16),
-                          child: LineChart(
-                            LineChartData(
-                              gridData: FlGridData(show: true),
-                              titlesData: FlTitlesData(
-                                topTitles: AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
-                                ),
-                                leftTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    reservedSize: 50,
-                                    getTitlesWidget: _leftTitleWidgets,
-                                  ),
-                                ),
-                                rightTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    reservedSize: 50,
-                                    getTitlesWidget: _leftTitleWidgets,
-                                  ),
-                                ),
-                                bottomTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    reservedSize: 32,
-                                    getTitlesWidget: (value, meta) {
-                                      int index = value.toInt();
-                                      if (index < 0 || index >= dates.length)
-                                        return Container();
-                                      String formattedDate =
-                                          DateFormat('MMM dd').format(
-                                              DateTime.parse(dates[index]));
-                                      return SideTitleWidget(
-                                        axisSide: meta.axisSide,
-                                        space: 8.0,
-                                        child: Text(
-                                          formattedDate,
-                                          style: TextStyle(
-                                            color: Color(0xff67727d),
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                    interval: (dates.length / 6).ceilToDouble(),
-                                  ),
-                                ),
+                    child: Card(
+                      elevation:
+                          10, // Increased elevation for a more pronounced shadow
+                      shadowColor:
+                          Colors.grey.withOpacity(0.8), // Darker shadow
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8.0),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(10),
                               ),
-                              borderData: FlBorderData(
-                                show: true,
-                                border: Border.all(
-                                    color: const Color(0xff37434d), width: 1),
-                              ),
-                              minX: 0,
-                              maxX: (dates.length - 1).toDouble(),
-                              minY: minY,
-                              maxY: maxYWithPadding,
-                              lineBarsData: [
-                                LineChartBarData(
-                                  spots: actualDataPoints,
-                                  isCurved: true,
-                                  color: Colors.blue,
-                                  barWidth: 2,
-                                  isStrokeCapRound: true,
-                                  dotData: FlDotData(show: false),
-                                  belowBarData: BarAreaData(show: false),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'Scroll horizontally to view the full graph',
+                                style: GoogleFonts.robotoCondensed(
+                                  color: Colors.grey,
+                                  fontSize: 12,
                                 ),
-                                LineChartBarData(
-                                  spots: predictedDataPoints,
-                                  isCurved: true,
-                                  color: Colors.orange,
-                                  barWidth: 2,
-                                  isStrokeCapRound: true,
-                                  dotData: FlDotData(show: false),
-                                  belowBarData: BarAreaData(show: false),
-                                ),
-                              ],
-                              lineTouchData: LineTouchData(
-                                touchTooltipData: LineTouchTooltipData(
-                                  getTooltipItems:
-                                      (List<LineBarSpot> touchedSpots) {
-                                    return touchedSpots.map((barSpot) {
-                                      String date =
-                                          dates[barSpot.spotIndex.toInt()];
-                                      String tooltipText = 'Date: $date\n';
-                                      tooltipText += barSpot.barIndex == 0
-                                          ? 'Actual: ${barSpot.y.toStringAsFixed(2)}'
-                                          : 'Predicted: ${barSpot.y.toStringAsFixed(2)}';
-                                      return LineTooltipItem(
-                                        tooltipText,
-                                        TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      );
-                                    }).toList();
-                                  },
-                                ),
-                                touchCallback: (FlTouchEvent event,
-                                    LineTouchResponse? touchResponse) {},
-                                handleBuiltInTouches: true,
                               ),
                             ),
                           ),
-                        ),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.vertical(
+                                bottom: Radius.circular(10),
+                              ),
+                            ),
+                            padding: const EdgeInsets.all(16),
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Container(
+                                width: graphWidth,
+                                child: AspectRatio(
+                                  aspectRatio: 2,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(
+                                        top: 10.0), // Add top padding here
+                                    child: LineChart(
+                                      LineChartData(
+                                        gridData: FlGridData(show: true),
+                                        titlesData: FlTitlesData(
+                                          topTitles: AxisTitles(
+                                            sideTitles:
+                                                SideTitles(showTitles: false),
+                                          ),
+                                          leftTitles: AxisTitles(
+                                            sideTitles: SideTitles(
+                                              showTitles: true,
+                                              reservedSize: 50,
+                                              getTitlesWidget: (value, meta) {
+                                                return _leftTitleWidgets(
+                                                    value, meta);
+                                              },
+                                            ),
+                                          ),
+                                          rightTitles: AxisTitles(
+                                            sideTitles: SideTitles(
+                                              showTitles: true,
+                                              reservedSize: 50,
+                                              getTitlesWidget: (value, meta) {
+                                                return _leftTitleWidgets(
+                                                    value, meta);
+                                              },
+                                            ),
+                                          ),
+                                          bottomTitles: AxisTitles(
+                                            sideTitles: SideTitles(
+                                              showTitles: true,
+                                              reservedSize: 32,
+                                              getTitlesWidget: (value, meta) {
+                                                int index = value.toInt();
+                                                if (index < 0 ||
+                                                    index >= dates.length)
+                                                  return Container();
+                                                String formattedDate =
+                                                    DateFormat('MMM dd').format(
+                                                        DateTime.parse(
+                                                            dates[index]));
+                                                return SideTitleWidget(
+                                                  axisSide: meta.axisSide,
+                                                  space: 8.0,
+                                                  child: Text(
+                                                    formattedDate,
+                                                    style: TextStyle(
+                                                      color: Color(0xff67727d),
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 12,
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                              interval: (dates.length / 6)
+                                                  .ceilToDouble(),
+                                            ),
+                                          ),
+                                        ),
+                                        borderData: FlBorderData(
+                                          show: true,
+                                          border: Border.all(
+                                              color: const Color(0xff37434d),
+                                              width: 1),
+                                        ),
+                                        minX: 0,
+                                        maxX: (dates.length - 1).toDouble(),
+                                        minY: minY,
+                                        maxY: maxYWithPadding,
+                                        lineBarsData: [
+                                          LineChartBarData(
+                                            spots: actualDataPoints,
+                                            isCurved: true,
+                                            color: const Color.fromARGB(
+                                                255, 44, 33, 243),
+                                            barWidth: 2,
+                                            isStrokeCapRound: true,
+                                            dotData: FlDotData(show: false),
+                                            belowBarData:
+                                                BarAreaData(show: false),
+                                          ),
+                                          LineChartBarData(
+                                            spots: predictedDataPoints,
+                                            isCurved: true,
+                                            color: const Color.fromARGB(
+                                                255, 255, 13, 0),
+                                            barWidth: 2,
+                                            isStrokeCapRound: true,
+                                            dotData: FlDotData(show: false),
+                                            belowBarData:
+                                                BarAreaData(show: false),
+                                          ),
+                                        ],
+                                        lineTouchData: LineTouchData(
+                                          touchTooltipData:
+                                              LineTouchTooltipData(
+                                            getTooltipItems: (List<LineBarSpot>
+                                                touchedSpots) {
+                                              return touchedSpots
+                                                  .map((barSpot) {
+                                                String date = dates[
+                                                    barSpot.spotIndex.toInt()];
+                                                String tooltipText =
+                                                    'Date: $date\n';
+                                                tooltipText += barSpot
+                                                            .barIndex ==
+                                                        0
+                                                    ? 'Actual: ${barSpot.y.toStringAsFixed(2)}'
+                                                    : 'Predicted: ${barSpot.y.toStringAsFixed(2)}';
+                                                return LineTooltipItem(
+                                                  tooltipText,
+                                                  TextStyle(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                );
+                                              }).toList();
+                                            },
+                                          ),
+                                          touchCallback: (FlTouchEvent event,
+                                              LineTouchResponse?
+                                                  touchResponse) {},
+                                          handleBuiltInTouches: true,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -478,175 +583,191 @@ class _DeployedAlgoDetailsPageState extends State<DeployedAlgoDetailsPage> {
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: <Widget>[
                         Indicator(
-                          color: Colors.blue,
+                          color: const Color.fromARGB(255, 44, 33, 243),
                           text: 'Actual',
                           isSquare: false,
                         ),
                         SizedBox(width: 10),
                         Indicator(
-                          color: Colors.orange,
+                          color: const Color.fromARGB(255, 255, 13, 0),
                           text: 'Predicted',
                           isSquare: false,
                         ),
                       ],
                     ),
                   ),
-                  SizedBox(height: 20),
                   Padding(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16.0, vertical: 8.0),
-                    child: Card(
-                      color: Colors.white,
-                      elevation: 5,
-                      shadowColor: Colors.grey.withOpacity(0.5),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                           children: [
-                            Text('Deployed Algorithm',
+                            Text('Performance Metrics',
                                 style: GoogleFonts.robotoCondensed(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                )),
-                            Text('Algorithm Name: $deployName',
-                                style:
-                                    GoogleFonts.robotoCondensed(fontSize: 16)),
-                            Text('Ticker: $deployTicker',
-                                style:
-                                    GoogleFonts.robotoCondensed(fontSize: 16)),
-                            Text('Deploy Date: $formattedDeployedDate',
-                                style:
-                                    GoogleFonts.robotoCondensed(fontSize: 16)),
-                            SizedBox(height: 20),
-                            Row(
-                              children: [
-                                Text('Performance Metrics',
-                                    style: GoogleFonts.robotoCondensed(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold)),
-                                IconButton(
-                                  icon: Icon(Icons.help_outline),
-                                  onPressed: () {
-                                    _showPerformanceExplanationDialog(context);
-                                  },
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 10),
-                            GridView.count(
-                              shrinkWrap: true,
-                              physics: NeverScrollableScrollPhysics(),
-                              crossAxisCount: 2,
-                              childAspectRatio: 3 / 2,
-                              crossAxisSpacing: 10,
-                              mainAxisSpacing: 10,
-                              children: <Widget>[
-                                PerformanceMetricCard(
-                                  title: 'MAE(Mean Absolute Error)',
-                                  value: data['deploy_MAE'],
-                                  lowThreshold: 5,
-                                  highThreshold: 10,
-                                ),
-                                PerformanceMetricCard(
-                                  title: 'MSE(Mean Squared Error)',
-                                  value: data['deploy_MSE'],
-                                  lowThreshold: 10,
-                                  highThreshold: 40,
-                                ),
-                                PerformanceMetricCard(
-                                  title: 'R² (R-Squared)',
-                                  value: data['deploy_R2'],
-                                  lowThreshold: 0.7,
-                                  highThreshold: 0.9,
-                                ),
-                                PerformanceMetricCard(
-                                  title:
-                                      'MAPE (Mean Absolute Percentage Error)',
-                                  value: data['deploy_MAPE'],
-                                  lowThreshold: 5,
-                                  highThreshold: 15,
-                                ),
-                              ],
+                                    fontSize: 18, fontWeight: FontWeight.bold)),
+                            IconButton(
+                              icon: Icon(Icons.help_outline),
+                              onPressed: () {
+                                _showPerformanceExplanationDialog(context);
+                              },
                             ),
                           ],
                         ),
-                      ),
+                        SizedBox(height: 10),
+                        GridView.count(
+                          shrinkWrap: true,
+                          physics: NeverScrollableScrollPhysics(),
+                          crossAxisCount: 2,
+                          childAspectRatio: 3 / 2,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                          children: <Widget>[
+                            PerformanceMetricCard(
+                              title: 'MAE (Mean Absolute Error)',
+                              value: data['deploy_MAE'],
+                              lowThreshold: 5,
+                              highThreshold: 10,
+                              cardColor: Color(0xFFE0E8FC), // Light purple
+                            ),
+                            PerformanceMetricCard(
+                              title: 'MSE (Mean Squared Error)',
+                              value: data['deploy_MSE'],
+                              lowThreshold: 10,
+                              highThreshold: 40,
+                              cardColor: Color(0xFFFFE5BC), // Light yellow
+                            ),
+                            PerformanceMetricCard(
+                              title: 'R² (R-Squared)',
+                              value: data['deploy_R2'],
+                              lowThreshold: 0.7,
+                              highThreshold: 0.9,
+                              cardColor: Color(0xFFFFE2E5), // Light pink
+                            ),
+                            PerformanceMetricCard(
+                              title: 'MAPE (Mean Absolute Percentage Error)',
+                              value: data['deploy_MAPE'],
+                              lowThreshold: 5,
+                              highThreshold: 15,
+                              cardColor: Color(0xFFE5F7F9), // Light blue
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16.0, vertical: 8.0),
-                    child: Card(
-                      color: Colors.white,
-                      elevation: 5,
-                      shadowColor: Colors.grey.withOpacity(0.5),
-                      child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text('Analysis Metrics',
-                                      style: GoogleFonts.robotoCondensed(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold)),
-                                  IconButton(
-                                    icon: Icon(Icons.help_outline),
-                                    onPressed: () {
-                                      _showAnalysisExplanationDialog(context);
-                                    },
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 10),
-                              AnalysisMetricCard(
-                                title: 'EPS',
-                                value: data['deploy_EPS'] ?? 0,
-                                goodThreshold: 2,
-                                badThreshold: 1,
-                              ),
-                              AnalysisMetricCard(
-                                title: 'Beta',
-                                value: data['deploy_beta'] ?? 0,
-                                goodThreshold: 1,
-                                badThreshold: 2,
-                              ),
-                              AnalysisMetricCard(
-                                title: 'PE Ratio',
-                                value: data['deploy_peRatio'] ?? 0,
-                                goodThreshold: 15,
-                                badThreshold: 25,
-                              ),
-                              AnalysisMetricCard(
-                                title: 'Market Cap',
-                                value:
-                                    formatMarketCap(data['deploy_marketCap']) ??
-                                        0,
-                                goodThreshold: 200e9,
-                                badThreshold: 10e9,
-                              ),
-                              AnalysisMetricCard(
-                                title: 'Volatility',
-                                value: data['deploy_volatility'] ?? 0,
-                                goodThreshold: 0.5,
-                                badThreshold: 2,
-                              ),
-                              AnalysisMetricCard(
-                                title: 'Trend Insight (7 days)',
-                                value: data['deploy_trendInsight7D'] ?? '',
-                                goodThreshold: 'Uptrend',
-                                badThreshold: 'Downtrend',
-                              ),
-                              AnalysisMetricCard(
-                                title: 'Trend Insight (30 days)',
-                                value: data['deploy_trendInsight30D'] ?? '',
-                                goodThreshold: 'Uptrend',
-                                badThreshold: 'Downtrend',
-                              ),
-                            ],
-                          )),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text('Analysis Metrics',
+                                style: GoogleFonts.robotoCondensed(
+                                    fontSize: 18, fontWeight: FontWeight.bold)),
+                            IconButton(
+                              icon: Icon(Icons.help_outline),
+                              onPressed: () {
+                                _showAnalysisExplanationDialog(context);
+                              },
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 10),
+                        Table(
+                          columnWidths: {
+                            0: FlexColumnWidth(1),
+                            1: FlexColumnWidth(1),
+                          },
+                          children: [
+                            TableRow(
+                              children: [
+                                Column(
+                                  children: [
+                                    AnalysisMetricCard(
+                                      title: 'EPS',
+                                      value: data['deploy_EPS'] ?? 0,
+                                      goodThreshold: 2,
+                                      badThreshold: 1,
+                                      cardColor:
+                                          Color(0xFFE0E8FC), // Light purple
+                                    ),
+                                    AnalysisMetricCard(
+                                      title: 'Market Cap',
+                                      value: formatMarketCap(
+                                              data['deploy_marketCap']) ??
+                                          0,
+                                      goodThreshold: 200e9,
+                                      badThreshold: 10e9,
+                                      cardColor:
+                                          Color(0xFFE5F7F9), // Light blue
+                                    ),
+                                    AnalysisMetricCard(
+                                      title: 'Beta',
+                                      value: data['deploy_beta'] ?? 0,
+                                      goodThreshold: 1,
+                                      badThreshold: 2,
+                                      cardColor:
+                                          Color(0xFFFFE5BC), // Light yellow
+                                    ),
+                                  ],
+                                ),
+                                AnalysisMetricCard(
+                                  title: 'PE Ratio',
+                                  value: data['deploy_peRatio'] ?? 0,
+                                  goodThreshold: 15,
+                                  badThreshold: 25,
+                                  cardColor: Color(0xFFFFE2E5), // Light pink
+                                  imagePath:
+                                      'assets/images/peratio.png', // Add appropriate image path here
+                                  isTall: true,
+                                ),
+                              ],
+                            ),
+                            TableRow(
+                              children: [
+                                AnalysisMetricCard(
+                                  title: 'Volatility',
+                                  value: data['deploy_volatility'] ?? 0,
+                                  goodThreshold: 0.5,
+                                  badThreshold: 2,
+                                  cardColor: Color(0xFFE0E8FC), // Light purple
+                                  imagePath:
+                                      'assets/images/volatility.png', // Add appropriate image path here
+                                  isTall: true,
+                                ),
+                                Column(
+                                  children: [
+                                    AnalysisMetricCard(
+                                      title: 'Trend Insight (7 days)',
+                                      value:
+                                          data['deploy_trendInsight7D'] ?? '',
+                                      goodThreshold: 'Uptrend',
+                                      badThreshold: 'Downtrend',
+                                      cardColor:
+                                          Color(0xFFFFE5BC), // Light yellow
+                                      isTrend: true,
+                                    ),
+                                    AnalysisMetricCard(
+                                      title: 'Trend Insight (30 days)',
+                                      value:
+                                          data['deploy_trendInsight30D'] ?? '',
+                                      goodThreshold: 'Uptrend',
+                                      badThreshold: 'Downtrend',
+                                      cardColor:
+                                          Color(0xFFFFE2E5), // Light pink
+                                      isTrend: true,
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                   Padding(
@@ -807,12 +928,19 @@ class _DeployedAlgoDetailsPageState extends State<DeployedAlgoDetailsPage> {
         ));
       },
       child: Card(
+        elevation: 5,
+        shadowColor: Colors.grey.withOpacity(0.5),
         margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
         child: ListTile(
           title: Text('Backtest ${index + 1}',
-              style: TextStyle(fontWeight: FontWeight.bold)),
-          subtitle: Text('Period: $formattedStartDate - $formattedEndDate'),
-          trailing: Text(formattedBtDate),
+              style: GoogleFonts.robotoCondensed(
+                  fontSize: 16, fontWeight: FontWeight.bold)),
+          subtitle: Text('Period: $formattedStartDate - $formattedEndDate',
+              style: GoogleFonts.robotoCondensed(
+                  fontSize: 14, fontWeight: FontWeight.normal)),
+          trailing: Text(formattedBtDate,
+              style: GoogleFonts.robotoCondensed(
+                  fontSize: 14, fontWeight: FontWeight.normal)),
         ),
       ),
     );
@@ -1016,7 +1144,7 @@ class Indicator extends StatelessWidget {
         ),
         const SizedBox(width: 4),
         Text(text,
-            style: TextStyle(
+            style: GoogleFonts.robotoCondensed(
                 fontSize: 16, fontWeight: FontWeight.bold, color: textColor)),
       ],
     );
@@ -1028,42 +1156,57 @@ class PerformanceMetricCard extends StatelessWidget {
   final double value;
   final double lowThreshold;
   final double highThreshold;
+  final Color cardColor;
 
   PerformanceMetricCard({
     required this.title,
     required this.value,
     required this.lowThreshold,
     required this.highThreshold,
+    required this.cardColor,
   });
 
-  Color _determineColor() {
+  Color _determineValueColor() {
     if (value <= lowThreshold) {
-      return Color.fromARGB(255, 189, 225, 188);
+      return Colors.green;
     } else if (value > highThreshold) {
-      return Color.fromARGB(255, 237, 196, 196);
+      return Colors.red;
     } else {
-      return Color.fromARGB(255, 231, 237, 196);
+      return Colors.green;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: _determineColor(),
+      color: cardColor,
+      shape: RoundedRectangleBorder(
+        side: BorderSide(
+          color: cardColor.darker(0.2), // Darker border color
+          width: 1,
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title,
-                style: GoogleFonts.robotoCondensed(
-                    fontSize: 14, fontWeight: FontWeight.bold)),
+            Text(
+              title,
+              style: GoogleFonts.robotoCondensed(
+                  fontSize: 14, fontWeight: FontWeight.bold),
+            ),
             Expanded(
               child: Center(
-                child: Text('${value.toStringAsFixed(2)}%',
-                    style: GoogleFonts.robotoCondensed(
-                        fontSize: 22, fontWeight: FontWeight.bold)),
+                child: Text(
+                  '${value.toStringAsFixed(2)}%',
+                  style: GoogleFonts.robotoCondensed(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: _determineValueColor()),
+                ),
               ),
             ),
           ],
@@ -1078,33 +1221,38 @@ class AnalysisMetricCard<T> extends StatelessWidget {
   final T value;
   final T goodThreshold;
   final T badThreshold;
+  final Color cardColor;
+  final String? imagePath;
+  final bool isTall;
+  final bool isTrend;
 
   AnalysisMetricCard({
     required this.title,
     required this.value,
     required this.goodThreshold,
     required this.badThreshold,
+    required this.cardColor,
+    this.imagePath,
+    this.isTall = false,
+    this.isTrend = false,
   });
 
-  Color _determineColor() {
-    if (value is String) {
-      return value == goodThreshold
-          ? Color.fromARGB(255, 189, 225, 188)
-          : (value == badThreshold
-              ? Color.fromARGB(255, 237, 196, 196)
-              : Color.fromARGB(255, 231, 237, 196));
-    }
+  Color _determineValueColor() {
     if (value is num) {
       num numValue = value as num;
       num numGoodThreshold = goodThreshold as num;
       num numBadThreshold = badThreshold as num;
       if (numValue <= numGoodThreshold) {
-        return Color.fromARGB(255, 189, 225, 188);
+        return Colors.green;
       } else if (numValue >= numBadThreshold) {
-        return Color.fromARGB(255, 237, 196, 196);
+        return Colors.red;
+      } else {
+        return Colors.green;
       }
+    } else if (value is String) {
+      return value == goodThreshold ? Colors.green : Colors.red;
     }
-    return Color.fromARGB(255, 231, 237, 196);
+    return Colors.black;
   }
 
   @override
@@ -1116,14 +1264,74 @@ class AnalysisMetricCard<T> extends StatelessWidget {
       displayValue = value.toString();
     }
     return Card(
-      color: _determineColor(),
-      child: ListTile(
-        title: Text(title,
-            style: GoogleFonts.robotoCondensed(
-                fontSize: 16, fontWeight: FontWeight.bold)),
-        trailing: Text(displayValue,
-            style: GoogleFonts.robotoCondensed(fontSize: 18)),
+      color: cardColor,
+      shape: RoundedRectangleBorder(
+        side: BorderSide(
+          color: cardColor.darker(0.2), // Darker border color
+          width: 1,
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ListTile(
+            title: Text(title,
+                style: GoogleFonts.robotoCondensed(
+                    fontSize: 16, fontWeight: FontWeight.bold)),
+            trailing: isTall
+                ? null
+                : isTrend
+                    ? null
+                    : Text(displayValue,
+                        style: GoogleFonts.robotoCondensed(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: _determineValueColor())),
+          ),
+          if (isTall && imagePath != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Column(
+                children: [
+                  Center(
+                    child: SizedBox(
+                      width: 60, // Adjust the width as needed
+                      height: 90, // Adjust the height as needed
+                      child: Image.asset(imagePath!),
+                    ),
+                  ),
+                  SizedBox(height: 8.0),
+                  Center(
+                    child: Text(displayValue,
+                        style: GoogleFonts.robotoCondensed(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: _determineValueColor())),
+                  ),
+                ],
+              ),
+            ),
+          if (isTrend)
+            Center(
+              child: Text(displayValue,
+                  style: GoogleFonts.robotoCondensed(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: _determineValueColor())),
+            ),
+        ],
       ),
     );
+  }
+}
+
+extension ColorExtension on Color {
+  Color darker([double amount = .1]) {
+    assert(amount >= 0 && amount <= 1);
+    final hsl = HSLColor.fromColor(this);
+    final hslDark = hsl.withLightness((hsl.lightness - amount).clamp(0.0, 1.0));
+    return hslDark.toColor();
   }
 }

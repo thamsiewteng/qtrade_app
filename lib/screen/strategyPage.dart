@@ -51,28 +51,19 @@ class _StrategyPageState extends State<StrategyPage> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: Color.fromARGB(255, 188, 208, 225),
+        backgroundColor: Color(0xFF0D0828), // Dark blue color
         elevation: 0,
         title: Text(
           'Strategy',
           style: GoogleFonts.robotoCondensed(
-            color: Colors.black,
+            color: Colors.white,
             fontSize: 30,
             fontWeight: FontWeight.bold,
           ),
         ),
       ),
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color.fromARGB(255, 188, 208, 225),
-              Color.fromARGB(255, 168, 185, 229),
-            ],
-          ),
-        ),
+        color: Colors.white, // Background color set to white
         child: SingleChildScrollView(
           padding: const EdgeInsets.only(
             left: 16.0,
@@ -172,7 +163,8 @@ class _StrategyPageState extends State<StrategyPage> {
 
                 return Card(
                   elevation: 4,
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white,
+                  shadowColor: Colors.grey.withOpacity(0.5), // Shadow color
                   child: ListTile(
                     leading: CircleAvatar(
                       // Assuming getImageForRank returns an ImageProvider
@@ -183,7 +175,7 @@ class _StrategyPageState extends State<StrategyPage> {
                       children: [
                         Text(
                           algoDoc['deploy_algoName'], // Algorithm name
-                          style: TextStyle(
+                          style: GoogleFonts.robotoCondensed(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: Colors.black,
@@ -192,10 +184,11 @@ class _StrategyPageState extends State<StrategyPage> {
                         SizedBox(height: 4),
                         Text(
                           algoDoc['deploy_date'] != null
-                              ? DateFormat('yyyy-MM-dd h:mma')
-                                  .format(algoDoc['deploy_date'].toDate())
+                              ? DateFormat('yyyy-MM-dd h:mma').format(
+                                  algoDoc['deploy_date'].toDate().add(Duration(
+                                      hours: 8))) // Adding 8 hours offset
                               : 'No date available', // Date formatted
-                          style: TextStyle(
+                          style: GoogleFonts.robotoCondensed(
                             fontSize: 12,
                             color: Colors.grey,
                           ),
@@ -204,7 +197,7 @@ class _StrategyPageState extends State<StrategyPage> {
                     ),
                     trailing: Text(
                       algoDoc['deploy_stockTicker'], // Stock ticker
-                      style: TextStyle(
+                      style: GoogleFonts.robotoCondensed(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: Colors.black,
@@ -233,7 +226,8 @@ class _StrategyPageState extends State<StrategyPage> {
   Widget _buildNoDeployedAlgorithmsCard() {
     return Card(
       elevation: 4,
-      color: Colors.white.withOpacity(0.9),
+      color: Colors.white,
+      shadowColor: Colors.grey.withOpacity(0.5), // Shadow color
       child: Container(
         padding: EdgeInsets.all(16),
         child: Center(
@@ -322,15 +316,24 @@ class _StrategyPageState extends State<StrategyPage> {
         padding: const EdgeInsets.symmetric(horizontal: 8.0),
         child: Column(
           children: [
-            CircleAvatar(
-              radius: 30,
-              backgroundColor: Colors.white,
-              child: Image.asset('assets/images/algorithmIcon.png', width: 40),
+            Material(
+              elevation: 8,
+              shape: CircleBorder(),
+              shadowColor: Colors.grey.withOpacity(0.8), // Shadow color
+              child: CircleAvatar(
+                radius: 30,
+                backgroundColor: Colors.white,
+                child:
+                    Image.asset('assets/images/algorithmIcon.png', width: 40),
+              ),
             ),
             SizedBox(height: 5),
             Text(
               name,
               style: GoogleFonts.robotoCondensed(color: Colors.black),
+              textAlign: TextAlign.center, // Center align the text
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2, // Allow the text to go to the second line
             ),
           ],
         ),
@@ -348,10 +351,15 @@ class _StrategyPageState extends State<StrategyPage> {
         },
         child: Column(
           children: [
-            CircleAvatar(
-              radius: 30,
-              backgroundColor: Colors.white,
-              child: Icon(Icons.add, color: Colors.black),
+            Material(
+              elevation: 5,
+              shape: CircleBorder(),
+              shadowColor: Colors.grey.withOpacity(0.5), // Shadow color
+              child: CircleAvatar(
+                radius: 30,
+                backgroundColor: Colors.white,
+                child: Icon(Icons.add, color: Colors.black),
+              ),
             ),
             SizedBox(height: 5),
             Text(
@@ -371,11 +379,22 @@ class _StrategyPageState extends State<StrategyPage> {
           padding: const EdgeInsets.all(8.0),
           child: Card(
             elevation: 2,
-            shadowColor: Colors.transparent,
-            color: Colors.transparent,
+            shadowColor: Colors.grey.withOpacity(0.5), // Shadow color
+            color: Colors.white,
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            child: Padding(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color.fromARGB(255, 176, 168, 229),
+                    Color(0xFFDADAE6)
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
               padding:
                   const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
               child: Column(

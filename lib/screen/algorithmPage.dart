@@ -12,27 +12,20 @@ class AlgorithmPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: Color.fromARGB(255, 188, 208, 225),
+        backgroundColor: Color(0xFF0D0828),
         elevation: 0,
         title: Text(
           'Algorithm',
           style: GoogleFonts.robotoCondensed(
             fontSize: 30,
             fontWeight: FontWeight.bold,
-            color: Colors.black,
+            color: Colors.white,
           ),
         ),
       ),
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color.fromARGB(255, 188, 208, 225),
-              Color.fromARGB(255, 168, 185, 229),
-            ],
-          ),
+          color: Colors.white,
         ),
         child: StreamBuilder<QuerySnapshot>(
           stream:

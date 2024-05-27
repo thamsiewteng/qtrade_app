@@ -109,19 +109,12 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: Color.fromARGB(255, 188, 208, 225),
+        backgroundColor: Color(0xFF0D0828),
         elevation: 0,
       ),
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color.fromARGB(255, 188, 208, 225),
-              Color.fromARGB(255, 168, 185, 229)
-            ],
-          ),
+          color: Colors.white,
         ),
         child: SingleChildScrollView(
           child: FutureBuilder<DocumentSnapshot>(
@@ -201,76 +194,89 @@ class _HomePageState extends State<HomePage> {
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Card(
-                      color: Color(0xFFeeeef7), // Match the screenshot color
-                      child: Padding(
-                        padding: EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Text(
-                              'Your total asset portfolio',
-                              style: GoogleFonts.robotoCondensed(
-                                fontSize: 18,
-                                color: Colors.black54,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  '\$${assetPortfolio.toStringAsFixed(2)}',
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.robotoCondensed(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                SizedBox(width: 10),
-                                if (isLoading)
-                                  SpinKitThreeBounce(
-                                    color: Color.fromARGB(255, 168, 138, 245),
-                                    size: 20.0,
-                                  )
-                                else ...[
-                                  Icon(indicatorIcon, color: indicatorColor),
-                                  Text(
-                                    '${changePercentage.toStringAsFixed(2)}%',
-                                    style: GoogleFonts.robotoCondensed(
-                                      fontSize: 18,
-                                      color: indicatorColor,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                            SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) =>
-                                          SP500TradingPage())),
-                              child: Text(
-                                'Invest now',
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFFeeeef7), Color(0xFFc0c4ff)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Card(
+                        color:
+                            Colors.transparent, // To make the card transparent
+                        elevation: 0, // Remove card shadow
+                        margin: EdgeInsets.all(0), // Remove card margin
+                        child: Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                'Your total asset portfolio',
                                 style: GoogleFonts.robotoCondensed(
                                   fontSize: 18,
-                                  fontWeight: FontWeight.normal,
+                                  color: Colors.black54,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              style: ElevatedButton.styleFrom(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                      10), // Button border radius
-                                ),
-                                backgroundColor:
-                                    Color(0xFF0D0828), // Background color
-                                foregroundColor: Colors.white, // Text color
+                              SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    '\$${assetPortfolio.toStringAsFixed(2)}',
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.robotoCondensed(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  SizedBox(width: 10),
+                                  if (isLoading)
+                                    SpinKitThreeBounce(
+                                      color: Color.fromARGB(255, 168, 138, 245),
+                                      size: 20.0,
+                                    )
+                                  else ...[
+                                    Icon(indicatorIcon, color: indicatorColor),
+                                    Text(
+                                      '${changePercentage.toStringAsFixed(2)}%',
+                                      style: GoogleFonts.robotoCondensed(
+                                        fontSize: 18,
+                                        color: indicatorColor,
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
-                            ),
-                          ],
+                              SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) =>
+                                            SP500TradingPage())),
+                                child: Text(
+                                  'Invest now',
+                                  style: GoogleFonts.robotoCondensed(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                        10), // Button border radius
+                                  ),
+                                  backgroundColor:
+                                      Color(0xFF0D0828), // Background color
+                                  foregroundColor: Colors.white, // Text color
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
