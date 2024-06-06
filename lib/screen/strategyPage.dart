@@ -767,13 +767,14 @@ class _StrategyPageState extends State<StrategyPage> {
               children: <Widget>[
                 Text(
                   'For optimal algorithm performance:',
-                  style: GoogleFonts.robotoCondensed(fontSize: 16),
+                  style: GoogleFonts.robotoCondensed(
+                      fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 Text(
                   '• Select a start date 8 to 12 years prior to today.\n'
                   '• This time frame ensures sufficient historical data for accuracy.\n'
                   '• It also helps maintain manageable computation times.\n'
-                  'Choosing within this range balances efficiency with predictive power.',
+                  '• Choosing within this range balances efficiency with predictive power.',
                   style: GoogleFonts.robotoCondensed(fontSize: 16),
                 ),
               ],

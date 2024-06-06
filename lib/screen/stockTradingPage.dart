@@ -387,8 +387,8 @@ class _StockTradingPageState extends State<StockTradingPage> {
   late Future<List<Candle>> candleData;
   late Future<StockInfo> stockInfo;
   late TrackballBehavior _trackballBehavior;
-  String selectedPeriod = '24h';
-  String selectedInterval = '15m';
+  String selectedPeriod = '7d';
+  String selectedInterval = '1h';
   double currentPrice = 0;
 
   bool showCandleChart = true;

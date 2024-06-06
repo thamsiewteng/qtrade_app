@@ -595,6 +595,28 @@ class _OverviewCardState extends State<OverviewCard> {
     }
   }
 
+  void updateRank(double changePercentage) async {
+    String rank;
+    if (changePercentage < 5) {
+      rank = 'novice';
+    } else if (changePercentage < 10) {
+      rank = 'intermediate';
+    } else if (changePercentage < 20) {
+      rank = 'advanced';
+    } else if (changePercentage < 50) {
+      rank = 'expert';
+    } else {
+      rank = 'master';
+    }
+
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      var userRef =
+          FirebaseFirestore.instance.collection('users').doc(user.uid);
+      await userRef.update({'rank': rank});
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     double totalBuyInValue = 0;
@@ -621,6 +643,8 @@ class _OverviewCardState extends State<OverviewCard> {
           ((totalCurrentValue - totalBuyInValue) / totalBuyInValue) * 100;
     }
 
+    updateRank(changePercentage);
+
     IconData indicatorIcon;
     Color indicatorColor;
 
@@ -634,6 +658,7 @@ class _OverviewCardState extends State<OverviewCard> {
       indicatorIcon = Icons.horizontal_rule;
       indicatorColor = Colors.grey;
     }
+
     return Container(
       margin: EdgeInsets.all(16),
       decoration: BoxDecoration(

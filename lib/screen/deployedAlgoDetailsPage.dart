@@ -51,12 +51,37 @@ class _DeployedAlgoDetailsPageState extends State<DeployedAlgoDetailsPage> {
           title: Text('Performance Metrics Explanation',
               style: GoogleFonts.robotoCondensed(
                   fontWeight: FontWeight.bold, fontSize: 20)),
-          content: Text(
-            'MAE (Mean Absolute Error):\nThe average of the absolute differences between predicted and actual values.\n\n'
-            'MSE (Mean Squared Error):\nThe average of the squared differences between predicted and actual values. Larger errors have a greater effect.\n\n'
-            'R² (R-Squared):\nThe proportion of the variance in the dependent variable that is predictable from the independent variables. Closer to 1 means better fit.\n\n'
-            'MAPE (Mean Absolute Percentage Error):\nThe average of the absolute percentage differences between predicted and actual values.',
-            style: GoogleFonts.robotoCondensed(fontSize: 16),
+          content: RichText(
+            text: TextSpan(
+              style: GoogleFonts.robotoCondensed(
+                  fontSize: 16, color: Colors.black),
+              children: <TextSpan>[
+                TextSpan(
+                    text: 'MAE (Mean Absolute Error):\n',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                TextSpan(
+                    text:
+                        'The average of the absolute differences between predicted and actual values.\n\n'),
+                TextSpan(
+                    text: 'MSE (Mean Squared Error):\n',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                TextSpan(
+                    text:
+                        'The average of the squared differences between predicted and actual values. Larger errors have a greater effect.\n\n'),
+                TextSpan(
+                    text: 'R² (R-Squared):\n',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                TextSpan(
+                    text:
+                        'The proportion of the variance in the dependent variable that is predictable from the independent variables. Closer to 1 means better fit.\n\n'),
+                TextSpan(
+                    text: 'MAPE (Mean Absolute Percentage Error):\n',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                TextSpan(
+                    text:
+                        'The average of the absolute percentage differences between predicted and actual values.'),
+              ],
+            ),
           ),
           actions: <Widget>[
             TextButton(
@@ -742,7 +767,7 @@ class _DeployedAlgoDetailsPageState extends State<DeployedAlgoDetailsPage> {
                                 Column(
                                   children: [
                                     AnalysisMetricCard(
-                                      title: 'Trend Insight (7 days)',
+                                      title: 'Trend Insight (Short Term)',
                                       value:
                                           data['deploy_trendInsight7D'] ?? '',
                                       goodThreshold: 'Uptrend',
@@ -752,7 +777,7 @@ class _DeployedAlgoDetailsPageState extends State<DeployedAlgoDetailsPage> {
                                       isTrend: true,
                                     ),
                                     AnalysisMetricCard(
-                                      title: 'Trend Insight (30 days)',
+                                      title: 'Trend Insight (Long Term)',
                                       value:
                                           data['deploy_trendInsight30D'] ?? '',
                                       goodThreshold: 'Uptrend',
