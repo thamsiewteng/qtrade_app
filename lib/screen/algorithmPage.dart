@@ -56,10 +56,8 @@ class AlgorithmPage extends StatelessWidget {
         ),
       ),
       bottomNavigationBar: CustomBottomNavigationBar(
-        currentIndex: 1, // Assuming AlgorithmPage is the second tab
-        onTap: (index) {
-          // Handle navigation bar tap
-        },
+        currentIndex: 1,
+        onTap: (index) {},
       ),
     );
   }
@@ -80,7 +78,6 @@ class AlgorithmTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
-        print("Document ID passed: $documentId"); // Debug print statement
         Navigator.push(
           context,
           MaterialPageRoute(

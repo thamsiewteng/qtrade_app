@@ -135,10 +135,8 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
       ),
       bottomNavigationBar: CustomBottomNavigationBar(
-        currentIndex: 4, // Assuming ProfilePage is the fifth tab
-        onTap: (index) {
-          // Handle navigation bar tap
-        },
+        currentIndex: 4,
+        onTap: (index) {},
       ),
     );
   }

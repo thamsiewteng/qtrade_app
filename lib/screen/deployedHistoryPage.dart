@@ -14,7 +14,7 @@ class DeployedHistoryPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    initializeDateFormatting(); // Required for custom time zone
+    initializeDateFormatting();
     User? user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       return Scaffold(
@@ -26,7 +26,7 @@ class DeployedHistoryPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: BackButton(color: Colors.white), // Added back button
+        leading: BackButton(color: Colors.white),
         backgroundColor: Color(0xFF0D0828),
         elevation: 0,
         title: Text(
@@ -95,14 +95,13 @@ class DeployedHistoryPage extends StatelessWidget {
                   itemCount: algoDocs.length,
                   itemBuilder: (context, index) {
                     var data = algoDocs[index].data() as Map<String, dynamic>;
-                    var documentId =
-                        algoDocs[index].id; // Get the document ID here
+                    var documentId = algoDocs[index].id;
                     var date = (data['deploy_date'] as Timestamp).toDate();
                     var formatter = DateFormat('yyyy-MM-dd h:mma');
-                    var timeZoneOffset = Duration(hours: 8); // Offset of UTC+8
+                    var timeZoneOffset = Duration(hours: 0);
 
-                    var formattedDate = formatter
-                        .format(date.add(timeZoneOffset)); // Apply the offset
+                    var formattedDate =
+                        formatter.format(date.add(timeZoneOffset));
 
                     return GestureDetector(
                       onTap: () {
@@ -158,10 +157,8 @@ class DeployedHistoryPage extends StatelessWidget {
         ),
       ),
       bottomNavigationBar: CustomBottomNavigationBar(
-        currentIndex: 2, // Assuming AlgorithmPage is the second tab
-        onTap: (index) {
-          // Handle navigation bar tap
-        },
+        currentIndex: 2,
+        onTap: (index) {},
       ),
     );
   }

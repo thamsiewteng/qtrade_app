@@ -11,29 +11,20 @@ class AlgorithmDetailsPage extends StatelessWidget {
   AlgorithmDetailsPage({required this.documentId});
 
   Future<void> integrateAlgorithm(BuildContext context) async {
-    String userId =
-        FirebaseAuth.instance.currentUser!.uid; // Get the current user's ID
-    DocumentReference algorithmRef = FirebaseFirestore.instance
-        .collection('algorithm')
-        .doc(documentId); // Reference to the algorithm document
+    String userId = FirebaseAuth.instance.currentUser!.uid;
+    DocumentReference algorithmRef =
+        FirebaseFirestore.instance.collection('algorithm').doc(documentId);
 
-    // Reference to the user's document
     DocumentReference userDoc =
         FirebaseFirestore.instance.collection('users').doc(userId);
 
-    // Add the algorithm DocumentReference to the user's document
     return userDoc.update({
-      'integrated_algoID': FieldValue.arrayUnion(
-          [algorithmRef]) // Use arrayUnion with a DocumentReference
+      'integrated_algoID': FieldValue.arrayUnion([algorithmRef])
     }).then((_) {
-      // Show a success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Algorithm successfully integrated!')),
       );
-      // Optionally pop the current page
-      // Navigator.of(context).pop();
     }).catchError((error) {
-      // Handle any errors here
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to integrate algorithm: $error')),
       );
@@ -87,11 +78,8 @@ class AlgorithmDetailsPage extends StatelessWidget {
                       children: <Widget>[
                         Image.asset('assets/images/algorithmIcon.png',
                             height: 50),
-                        SizedBox(
-                            width:
-                                10), // Add some space between the image and the text
+                        SizedBox(width: 10),
                         Expanded(
-                          // Wrap the text in an Expanded to handle overflow
                           child: Text(
                             data['algo_name'],
                             style: GoogleFonts.robotoCondensed(
@@ -129,8 +117,7 @@ class AlgorithmDetailsPage extends StatelessWidget {
                               style: GoogleFonts.robotoCondensed()),
                           style: ElevatedButton.styleFrom(
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                  10), // Button border radius
+                              borderRadius: BorderRadius.circular(10),
                             ),
                             backgroundColor: Color(0xFF0D0828),
                             foregroundColor: Colors.white,
@@ -147,24 +134,18 @@ class AlgorithmDetailsPage extends StatelessWidget {
       ),
       bottomNavigationBar: CustomBottomNavigationBar(
         currentIndex: 1,
-        onTap: (index) {
-          // Handle bottom navigation tap.
-        },
+        onTap: (index) {},
       ),
     );
   }
 
   Widget sectionHeader(String title, IconData icon, dynamic content) {
-    // First, check if content is a list or a single string
     List<String> stringList;
     if (content is List) {
-      // Cast each element in the list to String, assuming all elements can be represented as strings
       stringList = content.map((e) => e.toString()).toList();
     } else if (content is String) {
-      // If it's a single string, wrap it in a list
       stringList = [content];
     } else {
-      // If it's neither, handle this case appropriately (perhaps an empty list or some default value)
       stringList = ['Invalid content'];
     }
 

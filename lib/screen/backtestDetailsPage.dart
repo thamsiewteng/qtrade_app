@@ -63,7 +63,7 @@ class BacktestDetailsPage extends StatelessWidget {
                 Stack(
                   children: [
                     Card(
-                      margin: EdgeInsets.all(8.0), // Margin around the card
+                      margin: EdgeInsets.all(8.0),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
                           vertical: 16.0,
@@ -71,7 +71,7 @@ class BacktestDetailsPage extends StatelessWidget {
                         ),
                         child: Column(
                           children: [
-                            SizedBox(height: 40), // Adjusted for button space
+                            SizedBox(height: 40),
                             Text(
                               stockTicker,
                               style: GoogleFonts.robotoCondensed(
@@ -96,7 +96,7 @@ class BacktestDetailsPage extends StatelessWidget {
                             MetricCard(
                               title: 'Final Portfolio Value',
                               value: finalPortfolioValue.toStringAsFixed(2),
-                              color: Color(0xFFE5F7F9), // Light green color
+                              color: Color(0xFFE5F7F9),
                               valueColor: getColorForFinalPortfolioValue(
                                   finalPortfolioValue),
                             ),
@@ -106,8 +106,7 @@ class BacktestDetailsPage extends StatelessWidget {
                                   child: MetricCard(
                                     title: 'Sharpe Ratio',
                                     value: sharpeRatio.toStringAsFixed(2),
-                                    color:
-                                        Color(0xFFE5F7F9), // Light pink color
+                                    color: Color(0xFFE5F7F9),
                                     valueColor:
                                         getColorForSharpeRatio(sharpeRatio),
                                   ),
@@ -116,8 +115,7 @@ class BacktestDetailsPage extends StatelessWidget {
                                   child: MetricCard(
                                     title: 'Drawdown',
                                     value: drawdown.toStringAsFixed(2),
-                                    color:
-                                        Color(0xFFE5F7F9), // Light green color
+                                    color: Color(0xFFE5F7F9),
                                     valueColor: getColorForDrawdown(drawdown),
                                   ),
                                 ),
@@ -138,10 +136,8 @@ class BacktestDetailsPage extends StatelessWidget {
                                   child: MetricCard(
                                     title: 'Total Trades',
                                     value: totalTrades.toString(),
-                                    color:
-                                        Color(0xFFE5F7F9), // Light blue color
-                                    valueColor: Colors
-                                        .black, // Default color for integer value
+                                    color: Color(0xFFE5F7F9),
+                                    valueColor: Colors.black,
                                   ),
                                 ),
                               ],
@@ -152,8 +148,7 @@ class BacktestDetailsPage extends StatelessWidget {
                                   child: MetricCard(
                                     title: 'Win Rate',
                                     value: winRate.toStringAsFixed(2),
-                                    color:
-                                        Color(0xFFE5F7F9), // Light green color
+                                    color: Color(0xFFE5F7F9),
                                     valueColor: getColorForWinRate(winRate),
                                   ),
                                 ),
@@ -195,36 +190,26 @@ class BacktestDetailsPage extends StatelessWidget {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Explanation of Terms'),
+          title: Text(
+            'Explanation of Terms',
+            style: GoogleFonts.robotoCondensed(fontWeight: FontWeight.bold),
+          ),
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
                 RichText(
                   text: TextSpan(
-                    style: TextStyle(color: Colors.black),
+                    style: GoogleFonts.robotoCondensed(
+                        color: Colors.black, fontSize: 16),
                     children: [
                       TextSpan(
                         text: 'Sharpe Ratio: ',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      TextSpan(
-                        text: 'A measure of risk-adjusted return.',
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 10),
-                RichText(
-                  text: TextSpan(
-                    style: TextStyle(color: Colors.black),
-                    children: [
-                      TextSpan(
-                        text: 'Drawdown: ',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: GoogleFonts.robotoCondensed(
+                            fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       TextSpan(
                         text:
-                            'The peak-to-trough decline during a specific period.',
+                            'A measure of risk-adjusted return, calculated by dividing the difference between the portfolio returns and the risk-free rate by the standard deviation of the portfolio returns.',
                       ),
                     ],
                   ),
@@ -232,14 +217,35 @@ class BacktestDetailsPage extends StatelessWidget {
                 SizedBox(height: 10),
                 RichText(
                   text: TextSpan(
-                    style: TextStyle(color: Colors.black),
+                    style: GoogleFonts.robotoCondensed(
+                        color: Colors.black, fontSize: 16),
+                    children: [
+                      TextSpan(
+                        text: 'Drawdown: ',
+                        style: GoogleFonts.robotoCondensed(
+                            fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      TextSpan(
+                        text:
+                            'The percentage decline from the highest portfolio value to the lowest value over the backtest period.',
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 10),
+                RichText(
+                  text: TextSpan(
+                    style: GoogleFonts.robotoCondensed(
+                        color: Colors.black, fontSize: 16),
                     children: [
                       TextSpan(
                         text: 'Annual Return: ',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: GoogleFonts.robotoCondensed(
+                            fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       TextSpan(
-                        text: 'The yearly profit or loss percentage.',
+                        text:
+                            'The average return of the portfolio on an annual basis.',
                       ),
                     ],
                   ),
@@ -247,14 +253,17 @@ class BacktestDetailsPage extends StatelessWidget {
                 SizedBox(height: 10),
                 RichText(
                   text: TextSpan(
-                    style: TextStyle(color: Colors.black),
+                    style: GoogleFonts.robotoCondensed(
+                        color: Colors.black, fontSize: 16),
                     children: [
                       TextSpan(
                         text: 'Total Trades: ',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: GoogleFonts.robotoCondensed(
+                            fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       TextSpan(
-                        text: 'The total number of trades executed.',
+                        text:
+                            'The total number of trades executed during the backtest period.',
                       ),
                     ],
                   ),
@@ -262,11 +271,13 @@ class BacktestDetailsPage extends StatelessWidget {
                 SizedBox(height: 10),
                 RichText(
                   text: TextSpan(
-                    style: TextStyle(color: Colors.black),
+                    style: GoogleFonts.robotoCondensed(
+                        color: Colors.black, fontSize: 16),
                     children: [
                       TextSpan(
                         text: 'Win Rate: ',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: GoogleFonts.robotoCondensed(
+                            fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       TextSpan(
                         text: 'The percentage of profitable trades.',
@@ -277,11 +288,13 @@ class BacktestDetailsPage extends StatelessWidget {
                 SizedBox(height: 10),
                 RichText(
                   text: TextSpan(
-                    style: TextStyle(color: Colors.black),
+                    style: GoogleFonts.robotoCondensed(
+                        color: Colors.black, fontSize: 16),
                     children: [
                       TextSpan(
                         text: 'Loss Rate: ',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: GoogleFonts.robotoCondensed(
+                            fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       TextSpan(
                         text: 'The percentage of unprofitable trades.',
@@ -292,11 +305,13 @@ class BacktestDetailsPage extends StatelessWidget {
                 SizedBox(height: 10),
                 RichText(
                   text: TextSpan(
-                    style: TextStyle(color: Colors.black),
+                    style: GoogleFonts.robotoCondensed(
+                        color: Colors.black, fontSize: 16),
                     children: [
                       TextSpan(
                         text: 'Final Portfolio Value: ',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: GoogleFonts.robotoCondensed(
+                            fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       TextSpan(
                         text:
@@ -381,7 +396,7 @@ class MetricCard extends StatelessWidget {
         color: color,
         shape: RoundedRectangleBorder(
           side: BorderSide(
-            color: color.darker(0.2), // Darker border color
+            color: color.darker(0.2),
             width: 1,
           ),
           borderRadius: BorderRadius.circular(8),
@@ -390,7 +405,7 @@ class MetricCard extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center, // Center the value
+            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(

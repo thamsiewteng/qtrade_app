@@ -51,7 +51,7 @@ class _StrategyPageState extends State<StrategyPage> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: Color(0xFF0D0828), // Dark blue color
+        backgroundColor: Color(0xFF0D0828),
         elevation: 0,
         title: Text(
           'Strategy',
@@ -63,7 +63,7 @@ class _StrategyPageState extends State<StrategyPage> {
         ),
       ),
       body: Container(
-        color: Colors.white, // Background color set to white
+        color: Colors.white,
         child: SingleChildScrollView(
           padding: const EdgeInsets.only(
             left: 16.0,
@@ -159,22 +159,21 @@ class _StrategyPageState extends State<StrategyPage> {
 
             return Column(
               children: algoDocs.take(2).map((algoDoc) {
-                String documentId = algoDoc.id; // Get the document ID here
+                String documentId = algoDoc.id;
 
                 return Card(
                   elevation: 4,
                   color: Colors.white,
-                  shadowColor: Colors.grey.withOpacity(0.5), // Shadow color
+                  shadowColor: Colors.grey.withOpacity(0.5),
                   child: ListTile(
                     leading: CircleAvatar(
-                      // Assuming getImageForRank returns an ImageProvider
                       child: getImageForRank(algoDocs.indexOf(algoDoc)),
                     ),
                     title: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          algoDoc['deploy_algoName'], // Algorithm name
+                          algoDoc['deploy_algoName'],
                           style: GoogleFonts.robotoCondensed(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -184,10 +183,9 @@ class _StrategyPageState extends State<StrategyPage> {
                         SizedBox(height: 4),
                         Text(
                           algoDoc['deploy_date'] != null
-                              ? DateFormat('yyyy-MM-dd h:mma').format(
-                                  algoDoc['deploy_date'].toDate().add(Duration(
-                                      hours: 8))) // Adding 8 hours offset
-                              : 'No date available', // Date formatted
+                              ? DateFormat('yyyy-MM-dd h:mma')
+                                  .format(algoDoc['deploy_date'].toDate())
+                              : 'No date available',
                           style: GoogleFonts.robotoCondensed(
                             fontSize: 12,
                             color: Colors.grey,
@@ -196,7 +194,7 @@ class _StrategyPageState extends State<StrategyPage> {
                       ],
                     ),
                     trailing: Text(
-                      algoDoc['deploy_stockTicker'], // Stock ticker
+                      algoDoc['deploy_stockTicker'],
                       style: GoogleFonts.robotoCondensed(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -204,7 +202,6 @@ class _StrategyPageState extends State<StrategyPage> {
                       ),
                     ),
                     onTap: () {
-                      // Pass the document ID to the details page
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -227,15 +224,16 @@ class _StrategyPageState extends State<StrategyPage> {
     return Card(
       elevation: 4,
       color: Colors.white,
-      shadowColor: Colors.grey.withOpacity(0.5), // Shadow color
+      shadowColor: Colors.grey.withOpacity(0.5),
       child: Container(
         padding: EdgeInsets.all(16),
         child: Center(
           child: Text(
-            'No deployed algorithms found',
-            style: TextStyle(
+            'No deployed algorithms found.\n Start deploying now!',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.robotoCondensed(
               fontSize: 16,
-              color: Colors.black,
+              color: const Color.fromARGB(210, 0, 0, 0),
             ),
           ),
         ),
@@ -319,7 +317,7 @@ class _StrategyPageState extends State<StrategyPage> {
             Material(
               elevation: 8,
               shape: CircleBorder(),
-              shadowColor: Colors.grey.withOpacity(0.8), // Shadow color
+              shadowColor: Colors.grey.withOpacity(0.8),
               child: CircleAvatar(
                 radius: 30,
                 backgroundColor: Colors.white,
@@ -331,9 +329,9 @@ class _StrategyPageState extends State<StrategyPage> {
             Text(
               name,
               style: GoogleFonts.robotoCondensed(color: Colors.black),
-              textAlign: TextAlign.center, // Center align the text
+              textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
-              maxLines: 2, // Allow the text to go to the second line
+              maxLines: 2,
             ),
           ],
         ),
@@ -354,7 +352,7 @@ class _StrategyPageState extends State<StrategyPage> {
             Material(
               elevation: 5,
               shape: CircleBorder(),
-              shadowColor: Colors.grey.withOpacity(0.5), // Shadow color
+              shadowColor: Colors.grey.withOpacity(0.5),
               child: CircleAvatar(
                 radius: 30,
                 backgroundColor: Colors.white,
@@ -379,7 +377,7 @@ class _StrategyPageState extends State<StrategyPage> {
           padding: const EdgeInsets.all(8.0),
           child: Card(
             elevation: 2,
-            shadowColor: Colors.grey.withOpacity(0.5), // Shadow color
+            shadowColor: Colors.grey.withOpacity(0.5),
             color: Colors.white,
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -409,9 +407,7 @@ class _StrategyPageState extends State<StrategyPage> {
                       color: Colors.black,
                     ),
                   ),
-                  SizedBox(
-                      height:
-                          5), // Added space between the title and text field
+                  SizedBox(height: 5),
                   FutureBuilder<DocumentSnapshot>(
                     future: FirebaseFirestore.instance
                         .collection('users')
@@ -431,8 +427,12 @@ class _StrategyPageState extends State<StrategyPage> {
                               as Map<String, dynamic>)['integrated_algoID'] ??
                           [];
                       if (integratedAlgos.isEmpty) {
-                        return Text('No algorithms found');
+                        return Text(
+                          'Integrate algorithms from Algorithm page to start deployment',
+                          style: GoogleFonts.robotoCondensed(),
+                        );
                       }
+
                       return FutureBuilder<QuerySnapshot>(
                         future: FirebaseFirestore.instance
                             .collection('algorithm')
@@ -493,9 +493,7 @@ class _StrategyPageState extends State<StrategyPage> {
                       color: Colors.black,
                     ),
                   ),
-                  SizedBox(
-                      height:
-                          5), // Added space between the title and text field
+                  SizedBox(height: 5),
                   StreamBuilder<DocumentSnapshot>(
                     stream: FirebaseFirestore.instance
                         .collection('s&p500')
@@ -569,9 +567,7 @@ class _StrategyPageState extends State<StrategyPage> {
                       ),
                     ],
                   ),
-                  SizedBox(
-                      height:
-                          5), // Added space between the title and text field
+                  SizedBox(height: 5),
                   InkWell(
                     onTap: () async {
                       DateTime? picked = await showDatePicker(
@@ -714,7 +710,6 @@ class _StrategyPageState extends State<StrategyPage> {
                               print('Error updating user document: $error');
                             });
 
-                            // Show local notification
                             Provider.of<NotificationProvider>(context,
                                     listen: false)
                                 .showLocalNotification('Deployment Successful',
@@ -738,10 +733,9 @@ class _StrategyPageState extends State<StrategyPage> {
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF0D0828), // Button color
+                        backgroundColor: Color(0xFF0D0828),
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(8), // Button border radius
+                          borderRadius: BorderRadius.circular(8),
                         ),
                       ),
                     ),
@@ -766,16 +760,39 @@ class _StrategyPageState extends State<StrategyPage> {
             child: ListBody(
               children: <Widget>[
                 Text(
-                  'For optimal algorithm performance:',
+                  'Select a start date 8 to 12 years prior to today:',
                   style: GoogleFonts.robotoCondensed(
                       fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-                Text(
-                  '• Select a start date 8 to 12 years prior to today.\n'
-                  '• This time frame ensures sufficient historical data for accuracy.\n'
-                  '• It also helps maintain manageable computation times.\n'
-                  '• Choosing within this range balances efficiency with predictive power.',
-                  style: GoogleFonts.robotoCondensed(fontSize: 16),
+                RichText(
+                  text: TextSpan(
+                    style: GoogleFonts.robotoCondensed(
+                        fontSize: 16, color: Colors.black),
+                    children: <TextSpan>[
+                      TextSpan(
+                        text: '• ',
+                      ),
+                      TextSpan(
+                        text: '2012-2014: ',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      TextSpan(
+                        text:
+                            'Choose this range to capture long-term trends and significant historical events, providing a broader market context.\n\n',
+                      ),
+                      TextSpan(
+                        text: '• ',
+                      ),
+                      TextSpan(
+                        text: '2015-2016: ',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      TextSpan(
+                        text:
+                            'Select these years to focus on more recent market dynamics and faster processing while still covering crucial recent events like market reactions leading up to and including early impacts of global shifts.\n',
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -784,7 +801,7 @@ class _StrategyPageState extends State<StrategyPage> {
             TextButton(
               child: Text('Close'),
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
               },
             ),
           ],
@@ -797,12 +814,12 @@ class _StrategyPageState extends State<StrategyPage> {
 Image getImageForRank(int rank) {
   switch (rank) {
     case 0:
-      return Image.asset('assets/images/top1.png'); // Icon for the 1st place
+      return Image.asset('assets/images/top1.png');
     case 1:
-      return Image.asset('assets/images/top2.png'); // Icon for the 2nd place
+      return Image.asset('assets/images/top2.png');
     case 2:
-      return Image.asset('assets/images/top3.png'); // Default icon
+      return Image.asset('assets/images/top3.png');
     default:
-      return Image.asset('assets/images/algorithmIcon.png'); // Default icon
+      return Image.asset('assets/images/algorithmIcon.png');
   }
 }

@@ -12,7 +12,6 @@ class FirebaseAuthenticationService {
         .createUserWithEmailAndPassword(email: email, password: password);
     User? user = userCredential.user;
     if (user != null) {
-      // Optionally, update the user's profile with their full name
       await user.updateDisplayName(fullName);
       await user.reload();
       user = _firebaseAuth.currentUser;

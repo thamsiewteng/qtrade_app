@@ -26,9 +26,7 @@ List<Candle> connectTradingPeriods(List<Candle> candles) {
     DateTime currentDateTime = candles[i].datetime;
     DateTime nextDateTime = candles[i + 1].datetime;
 
-    // Check if the next candle is on a different day
     if (currentDateTime.day != nextDateTime.day) {
-      // Add a connecting candle between the last closing price and the next opening price
       connectedCandles.add(Candle(
         open: candles[i].close,
         high: candles[i].close,
@@ -47,7 +45,7 @@ List<Candle> connectTradingPeriods(List<Candle> candles) {
       ));
     }
   }
-  connectedCandles.add(candles.last); // Add the last candle
+  connectedCandles.add(candles.last);
   return connectedCandles;
 }
 
@@ -83,7 +81,7 @@ class CandlestickChart extends StatelessWidget {
             color: Colors.grey.withOpacity(0.5),
             spreadRadius: 2,
             blurRadius: 5,
-            offset: Offset(0, 3), // changes position of shadow
+            offset: Offset(0, 3),
           ),
         ],
       ),
@@ -168,7 +166,7 @@ class LineChart extends StatelessWidget {
             color: Colors.grey.withOpacity(0.5),
             spreadRadius: 2,
             blurRadius: 5,
-            offset: Offset(0, 3), // changes position of shadow
+            offset: Offset(0, 3),
           ),
         ],
       ),
@@ -227,8 +225,7 @@ class StockInfoWidget extends StatefulWidget {
 }
 
 class _StockInfoWidgetState extends State<StockInfoWidget> {
-  bool isExpanded =
-      false; // This state controls the visibility of additional info
+  bool isExpanded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -245,7 +242,6 @@ class _StockInfoWidgetState extends State<StockInfoWidget> {
           child: Padding(
             padding: EdgeInsets.all(12),
             child: IntrinsicWidth(
-              // Wraps content within its natural width
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -254,7 +250,7 @@ class _StockInfoWidgetState extends State<StockInfoWidget> {
                         isExpanded ? Icons.expand_less : Icons.expand_more),
                     onPressed: () {
                       setState(() {
-                        isExpanded = !isExpanded; // Toggle the expanded state
+                        isExpanded = !isExpanded;
                       });
                     },
                   ),
@@ -337,7 +333,7 @@ class _StockInfoWidgetState extends State<StockInfoWidget> {
                 ),
               ],
             ),
-            SizedBox(height: 8), // Spacing between rows
+            SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -485,13 +481,12 @@ class _StockTradingPageState extends State<StockTradingPage> {
                         setState(() {
                           selectedPeriod = entry.key;
                           selectedInterval = entry.value;
-                          fetchData(); // Fetch data with new period and interval
+                          fetchData();
                         });
                       },
                       style: ElevatedButton.styleFrom(
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(10), // Button border radius
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         backgroundColor: selectedPeriod == entry.key
                             ? Color(0xFF0D0828)
@@ -509,7 +504,6 @@ class _StockTradingPageState extends State<StockTradingPage> {
                   }).toList(),
                 ),
               ),
-              // Toggle button for chart type
               Padding(
                 padding: const EdgeInsets.all(4.0),
                 child: Row(
@@ -534,7 +528,7 @@ class _StockTradingPageState extends State<StockTradingPage> {
                           borderColor: Color(0xFF0D0828),
                           constraints: BoxConstraints(
                             minHeight: 40,
-                            minWidth: 150, // Adjust this to fit the text
+                            minWidth: 150,
                           ),
                           isSelected: [isCandlestickChart, !isCandlestickChart],
                           onPressed: (index) {
@@ -576,9 +570,8 @@ class _StockTradingPageState extends State<StockTradingPage> {
                   ],
                 ),
               ),
-
               SizedBox(
-                height: 500, // Assign a fixed height for the chart
+                height: 500,
                 child: FutureBuilder<List<Candle>>(
                   future: candleData,
                   builder: (context, snapshot) {
@@ -609,8 +602,7 @@ class _StockTradingPageState extends State<StockTradingPage> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 8.0), // Set your desired horizontal padding
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -624,18 +616,14 @@ class _StockTradingPageState extends State<StockTradingPage> {
                                 currentPrice, assetPortfolio);
                           } catch (e) {
                             print("Failed to fetch asset portfolio: $e");
-                            // Optionally, handle this case in your UI, e.g., by showing an error message
                           }
                         },
                         style: TextButton.styleFrom(
-                          backgroundColor: Color.fromARGB(
-                              255, 180, 228, 166), // Button color
+                          backgroundColor: Color.fromARGB(255, 180, 228, 166),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                                8), // Button border radius
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          padding: EdgeInsets.all(
-                              8.0), // Inner padding for TextButton
+                          padding: EdgeInsets.all(8.0),
                         ),
                         child: Text(
                           'Buy',
@@ -715,8 +703,7 @@ class _StockTradingPageState extends State<StockTradingPage> {
 
 String? getCurrentUserId() {
   User? user = FirebaseAuth.instance.currentUser;
-  return user
-      ?.uid; // This will return the user ID or null if no user is signed in
+  return user?.uid;
 }
 
 Future<List<Candle>> fetchCandlestickData(
@@ -726,16 +713,10 @@ Future<List<Candle>> fetchCandlestickData(
     final headers = {"Content-Type": "application/json"};
     final body = json.encode(
         {"ticker": tickerSymbol, "period": period, "interval": interval});
-//1h 1m
-//6h 30m
-//24h 1h
-//7d 1h
-//30d 1d/1h
 
     final response = await http.post(url, headers: headers, body: body);
 
     if (response.statusCode == 200) {
-      // print(response.body);
       List<dynamic> data = json.decode(response.body);
       return data.map((candleData) => Candle.fromJson(candleData)).toList();
     } else {
@@ -743,9 +724,8 @@ Future<List<Candle>> fetchCandlestickData(
           'Failed to load candlestick data. Status code: ${response.statusCode}');
     }
   } on Exception catch (e) {
-    // Handle the exception by logging or displaying an error message
     print('Error fetching candlestick data: $e');
-    rethrow; // This will allow the FutureBuilder to catch the error and handle it
+    rethrow;
   }
 }
 
@@ -768,7 +748,6 @@ Future<StockInfo> fetchStockInfo(String tickerSymbol) async {
 Future<void> handleBuy(String userId, String tickerSymbol, double price,
     int quantity, String orderType) async {
   try {
-    // Create a transaction record
     DocumentReference transactionRef = await FirebaseFirestore.instance
         .collection('paper_trading_transaction')
         .add({
@@ -781,12 +760,9 @@ Future<void> handleBuy(String userId, String tickerSymbol, double price,
       'pt_transactionType': 'buy'
     });
 
-    // Update the user's document with the transaction reference
     await FirebaseFirestore.instance.collection('users').doc(userId).update({
       'paperTrading_transactionID': FieldValue.arrayUnion([transactionRef])
     });
-
-    // Optionally, update other user fields or handle further business logic
   } catch (e) {
     print("An error occurred while processing the transaction: $e");
   }
@@ -802,7 +778,7 @@ Future<void> handleSell(
 ) async {
   try {
     if (orderType == 'Market Order') {
-      price = currentPrice; // Use current price for market order
+      price = currentPrice;
     }
 
     DocumentReference transactionRef = await FirebaseFirestore.instance
@@ -817,12 +793,9 @@ Future<void> handleSell(
       'pt_transactionType': 'sell'
     });
 
-    // Update the user's document with the transaction reference
     await FirebaseFirestore.instance.collection('users').doc(userId).update({
       'paperTrading_transactionID': FieldValue.arrayUnion([transactionRef])
     });
-
-    // Optionally, you can handle further business logic here if needed
   } catch (e) {
     print("An error occurred while processing the transaction: $e");
   }
@@ -842,7 +815,7 @@ Future<double> fetchAssetPortfolio() async {
           ? portfolio.toDouble()
           : (portfolio as double? ?? 0.0);
     } else {
-      return 0.0; // Or handle the absence of data appropriately
+      return 0.0;
     }
   } else {
     throw Exception("No user logged in");
@@ -862,7 +835,7 @@ Future<int> fetchUserHoldings(String userId, String tickerSymbol) async {
       }
     }
   }
-  return 0; // User does not hold any shares of the tickerSymbol
+  return 0;
 }
 
 class Candle {
@@ -962,7 +935,6 @@ void _showBuyDialog(BuildContext context, String tickerSymbol,
       TextEditingController(text: currentPrice.toStringAsFixed(2));
   TextEditingController buyableController = TextEditingController();
 
-  // Calculate initial buyable amount
   int initialBuyable = (totalAssetPortfolio / currentPrice).floor();
   buyableController.text = initialBuyable.toString();
 
@@ -972,13 +944,11 @@ void _showBuyDialog(BuildContext context, String tickerSymbol,
     double amount = price * quantity;
     int buyable = (totalAssetPortfolio / price).floor();
 
-    amountController.text = amount.toStringAsFixed(2); // Format to two decimals
-    buyableController.text = buyable.toString(); // Update buyable amount
+    amountController.text = amount.toStringAsFixed(2);
+    buyableController.text = buyable.toString();
     if (quantity > buyable) {
-      quantityController.text = buyable
-          .toString(); // Adjust quantity if it exceeds the buyable amount
-      amountController.text =
-          (price * buyable).toStringAsFixed(2); // Adjust total amount
+      quantityController.text = buyable.toString();
+      amountController.text = (price * buyable).toStringAsFixed(2);
     }
   }
 
@@ -986,8 +956,8 @@ void _showBuyDialog(BuildContext context, String tickerSymbol,
     context: context,
     barrierDismissible: true,
     builder: (BuildContext context) {
-      String dropdownValue = 'LMT Order'; // Default to LMT Order
-      bool isPriceEnabled = true; // Price is enabled by default
+      String dropdownValue = 'LMT Order';
+      bool isPriceEnabled = true;
 
       return StatefulBuilder(
         builder: (BuildContext context, StateSetter setState) {
@@ -1023,11 +993,10 @@ void _showBuyDialog(BuildContext context, String tickerSymbol,
                         if (newValue != null) {
                           setState(() {
                             dropdownValue = newValue;
-                            isPriceEnabled = newValue ==
-                                'LMT Order'; // Enable price only for LMT Order
+                            isPriceEnabled = newValue == 'LMT Order';
                             if (!isPriceEnabled) {
-                              priceController.text = currentPrice
-                                  .toStringAsFixed(2); // Reset to current price
+                              priceController.text =
+                                  currentPrice.toStringAsFixed(2);
                               updateAmount();
                             }
                           });
@@ -1066,29 +1035,23 @@ void _showBuyDialog(BuildContext context, String tickerSymbol,
                       decoration: getDecoration('Amount'),
                       controller: amountController,
                     ),
-                    //SizedBox(height: 16),
-                    SizedBox(
-                        height:
-                            4), // Add some space between the text and disclaimer
+                    SizedBox(height: 4),
                     Text(
                       'A transaction fee of 0.2% is applied to each buy and sell order.',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.black, // Lighter color for the disclaimer
+                        color: Colors.black,
                       ),
                     ),
                     Padding(
                       padding: EdgeInsets.only(top: 4),
                       child: RichText(
                         text: TextSpan(
-                          style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.black), // Default text style
+                          style: TextStyle(fontSize: 14, color: Colors.black),
                           children: <TextSpan>[
-                            TextSpan(text: 'Buyable: '), // The label in black
+                            TextSpan(text: 'Buyable: '),
                             TextSpan(
-                              text:
-                                  '$initialBuyable shares', // The value in green
+                              text: '$initialBuyable shares',
                               style: TextStyle(color: Colors.green),
                             ),
                           ],
@@ -1107,7 +1070,7 @@ void _showBuyDialog(BuildContext context, String tickerSymbol,
                                   int.parse(quantityController.text),
                                   dropdownValue)
                               .then((_) {
-                            Navigator.pop(context); // Close the dialog first
+                            Navigator.pop(context);
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
@@ -1175,12 +1138,10 @@ void _showSellDialog(BuildContext context, String tickerSymbol,
     int quantity = int.tryParse(quantityController.text) ?? 0;
     double amount = price * quantity;
 
-    amountController.text = amount.toStringAsFixed(2); // Format to two decimals
+    amountController.text = amount.toStringAsFixed(2);
     if (quantity > sellableShares) {
-      quantityController.text = sellableShares
-          .toString(); // Adjust quantity if it exceeds the sellable shares
-      amountController.text =
-          (price * sellableShares).toStringAsFixed(2); // Adjust total amount
+      quantityController.text = sellableShares.toString();
+      amountController.text = (price * sellableShares).toStringAsFixed(2);
     }
   }
 
@@ -1188,8 +1149,8 @@ void _showSellDialog(BuildContext context, String tickerSymbol,
     context: context,
     barrierDismissible: true,
     builder: (BuildContext context) {
-      String dropdownValue = 'LMT Order'; // Default to LMT Order
-      bool isPriceEnabled = true; // Price is enabled by default
+      String dropdownValue = 'LMT Order';
+      bool isPriceEnabled = true;
 
       return StatefulBuilder(
         builder: (BuildContext context, StateSetter setState) {
@@ -1225,11 +1186,10 @@ void _showSellDialog(BuildContext context, String tickerSymbol,
                         if (newValue != null) {
                           setState(() {
                             dropdownValue = newValue;
-                            isPriceEnabled = newValue ==
-                                'LMT Order'; // Enable price only for LMT Order
+                            isPriceEnabled = newValue == 'LMT Order';
                             if (!isPriceEnabled) {
-                              priceController.text = currentPrice
-                                  .toStringAsFixed(2); // Reset to current price
+                              priceController.text =
+                                  currentPrice.toStringAsFixed(2);
                               updateAmount();
                             }
                           });
@@ -1268,28 +1228,23 @@ void _showSellDialog(BuildContext context, String tickerSymbol,
                       decoration: getDecoration('Amount'),
                       controller: amountController,
                     ),
-                    SizedBox(
-                        height:
-                            4), // Add some space between the text and disclaimer
+                    SizedBox(height: 4),
                     Text(
                       'A transaction fee of 0.2% is applied to each buy and sell order.',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.black, // Lighter color for the disclaimer
+                        color: Colors.black,
                       ),
                     ),
                     Padding(
                       padding: EdgeInsets.only(top: 4),
                       child: RichText(
                         text: TextSpan(
-                          style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.black), // Default text style
+                          style: TextStyle(fontSize: 14, color: Colors.black),
                           children: <TextSpan>[
-                            TextSpan(text: 'Sellable: '), // The label in black
+                            TextSpan(text: 'Sellable: '),
                             TextSpan(
-                              text:
-                                  '$sellableShares shares', // The value in green
+                              text: '$sellableShares shares',
                               style: TextStyle(color: Colors.green),
                             ),
                           ],
@@ -1309,7 +1264,7 @@ void _showSellDialog(BuildContext context, String tickerSymbol,
                             dropdownValue,
                             currentPrice,
                           ).then((_) {
-                            Navigator.pop(context); // Close the dialog first
+                            Navigator.pop(context);
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
@@ -1375,20 +1330,22 @@ void _showOrderTypeDialog(BuildContext context) {
             children: <Widget>[
               Text(
                 'LMT Order',
-                style: GoogleFonts.robotoCondensed(),
+                style: GoogleFonts.robotoCondensed(
+                    fontWeight: FontWeight.bold, fontSize: 16),
               ),
               Text(
-                'Enhanced limit orders can be placed at a specified price. Trading hours: 09:30-12:00 & 13:00-16:00, excluding Saturdays, Sundays, and public holidays.',
-                style: GoogleFonts.robotoCondensed(),
+                'Enhanced limit orders can be placed at a specified price.',
+                style: GoogleFonts.robotoCondensed(fontSize: 16),
               ),
               SizedBox(height: 8),
               Text(
                 'Market Order',
-                style: GoogleFonts.robotoCondensed(),
+                style: GoogleFonts.robotoCondensed(
+                    fontWeight: FontWeight.bold, fontSize: 16),
               ),
               Text(
                 'A market order is used to buy or sell at the market price rather than at a specified price.',
-                style: GoogleFonts.robotoCondensed(),
+                style: GoogleFonts.robotoCondensed(fontSize: 16),
               ),
             ],
           ),
@@ -1413,8 +1370,8 @@ class IncrementDecrementField extends StatefulWidget {
   final String label;
   final TextEditingController controller;
   final Function(double) onChanged;
-  final bool isPrice; // Determines if it handles price or quantity
-  final bool isEnabled; // Determines if the field is enabled or disabled
+  final bool isPrice;
+  final bool isEnabled;
 
   IncrementDecrementField({
     Key? key,
@@ -1422,7 +1379,7 @@ class IncrementDecrementField extends StatefulWidget {
     required this.controller,
     required this.onChanged,
     this.isPrice = false,
-    this.isEnabled = true, // By default, the field is enabled
+    this.isEnabled = true,
   }) : super(key: key);
 
   @override
@@ -1440,24 +1397,24 @@ class _IncrementDecrementFieldState extends State<IncrementDecrementField> {
   }
 
   void _increment() {
-    if (!widget.isEnabled) return; // Prevent increment when disabled
+    if (!widget.isEnabled) return;
     setState(() {
       currentValue += 1;
       widget.controller.text = widget.isPrice
           ? currentValue.toStringAsFixed(2)
-          : currentValue.toInt().toString(); // No decimal for quantity
+          : currentValue.toInt().toString();
       widget.onChanged(currentValue);
     });
   }
 
   void _decrement() {
-    if (!widget.isEnabled) return; // Prevent decrement when disabled
+    if (!widget.isEnabled) return;
     setState(() {
       if (currentValue > 0) {
         currentValue -= 1;
         widget.controller.text = widget.isPrice
             ? currentValue.toStringAsFixed(2)
-            : currentValue.toInt().toString(); // No decimal for quantity
+            : currentValue.toInt().toString();
         widget.onChanged(currentValue);
       }
     });
@@ -1466,7 +1423,7 @@ class _IncrementDecrementFieldState extends State<IncrementDecrementField> {
   @override
   Widget build(BuildContext context) {
     return TextFormField(
-      enabled: widget.isEnabled, // Use isEnabled to enable/disable the field
+      enabled: widget.isEnabled,
       controller: widget.controller,
       decoration: InputDecoration(
         labelText: widget.label,

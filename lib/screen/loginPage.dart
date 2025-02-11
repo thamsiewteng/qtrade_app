@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_signin_button/flutter_signin_button.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:qtrade_app/screen/homePage.dart';
 import 'package:qtrade_app/screen/signUpPage.dart';
 
@@ -13,7 +11,6 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
@@ -27,11 +24,10 @@ class _LoginPageState extends State<LoginPage> {
         SnackBar(content: Text('Login successful!')),
       );
 
-      // Delay for a short duration to let the user see the Snackbar
-      await Future.delayed(Duration(seconds: 2));
+      await Future.delayed(Duration(seconds: 1));
 
       Navigator.of(context).pushReplacement(MaterialPageRoute(
-        builder: (context) => HomePage(), // Replace with your home page
+        builder: (context) => HomePage(),
       ));
     } on FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -72,9 +68,17 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: Colors.white,
         elevation: 0,
-        title: Text('Login', style: GoogleFonts.roboto(color: Colors.black)),
+        title: Text(
+          'Login',
+          style: GoogleFonts.robotoCondensed(
+            color: Colors.black,
+            fontSize: 30,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),

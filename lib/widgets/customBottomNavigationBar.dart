@@ -52,7 +52,6 @@ class CustomBottomNavigationBar extends StatelessWidget {
               context,
               MaterialPageRoute(builder: (context) => ProfilePage()),
             );
-          // Add other cases for each tab
         }
       },
       items: [

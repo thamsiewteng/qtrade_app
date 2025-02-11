@@ -61,13 +61,13 @@ class _DeployedAlgoDetailsPageState extends State<DeployedAlgoDetailsPage> {
                     style: TextStyle(fontWeight: FontWeight.bold)),
                 TextSpan(
                     text:
-                        'The average of the absolute differences between predicted and actual values.\n\n'),
+                        'The average of the absolute differences between predicted and actual values. Lower MAE means better accuracy.\n\n'),
                 TextSpan(
                     text: 'MSE (Mean Squared Error):\n',
                     style: TextStyle(fontWeight: FontWeight.bold)),
                 TextSpan(
                     text:
-                        'The average of the squared differences between predicted and actual values. Larger errors have a greater effect.\n\n'),
+                        'The average of the squared differences between predicted and actual values. It penalizes larger errors more heavily. Lower MSE indicates better accuracy. \n\n'),
                 TextSpan(
                     text: 'R² (R-Squared):\n',
                     style: TextStyle(fontWeight: FontWeight.bold)),
@@ -79,7 +79,7 @@ class _DeployedAlgoDetailsPageState extends State<DeployedAlgoDetailsPage> {
                     style: TextStyle(fontWeight: FontWeight.bold)),
                 TextSpan(
                     text:
-                        'The average of the absolute percentage differences between predicted and actual values.'),
+                        'The average of the absolute percentage differences between predicted and actual values. Lower MAPE indicates better accuracy.'),
               ],
             ),
           ),
@@ -117,7 +117,7 @@ class _DeployedAlgoDetailsPageState extends State<DeployedAlgoDetailsPage> {
                   ),
                   TextSpan(
                     text:
-                        'The portion of a company\'s profit allocated to each outstanding share of common stock.\n\n',
+                        'EPS measures how much profit a company makes for each share of its stock. Higher EPS generally means the company is more profitable, which can be a sign of a strong business.\n\n',
                   ),
                   TextSpan(
                     text: 'Beta:\n',
@@ -125,7 +125,7 @@ class _DeployedAlgoDetailsPageState extends State<DeployedAlgoDetailsPage> {
                   ),
                   TextSpan(
                     text:
-                        'A measure of a stock\'s volatility in relation to the overall market. A beta less than 1 indicates lower volatility than the market.\n\n',
+                        'Beta shows how much a stock’s price moves compared to the overall market. A beta less than 1 means the stock is less volatile than the market, while a beta greater than 1 means it is more volatile.\n\n',
                   ),
                   TextSpan(
                     text: 'PE Ratio (Price to Earnings Ratio):\n',
@@ -133,7 +133,7 @@ class _DeployedAlgoDetailsPageState extends State<DeployedAlgoDetailsPage> {
                   ),
                   TextSpan(
                     text:
-                        'A valuation ratio of a company\'s current share price compared to its per-share earnings.\n\n',
+                        'The PE ratio compares a company’s current share price to its earnings per share. It helps investors determine if a stock is overvalued or undervalued. A lower PE might mean the stock is cheaper compared to its earnings.\n\n',
                   ),
                   TextSpan(
                     text: 'Market Cap (Market Capitalization):\n',
@@ -141,7 +141,7 @@ class _DeployedAlgoDetailsPageState extends State<DeployedAlgoDetailsPage> {
                   ),
                   TextSpan(
                     text:
-                        'The total market value of a company\'s outstanding shares. It is calculated by multiplying the stock price by the total number of outstanding shares.\n\n',
+                        'Market cap is the total value of a company’s shares of stock.It helps determine the size of a company. Large-cap companies are usually more stable, while small-cap companies might grow faster but are riskier.\n\n',
                   ),
                   TextSpan(
                     text: 'Volatility:\n',
@@ -149,7 +149,7 @@ class _DeployedAlgoDetailsPageState extends State<DeployedAlgoDetailsPage> {
                   ),
                   TextSpan(
                     text:
-                        'The degree of variation of a trading price series over time. Lower volatility means the stock price is more stable.\n\n',
+                        'Volatility measures how much a stock’s price goes up and down. High volatility means the stock price can change a lot in a short time, which can be risky. Low volatility means the price is more stable.\n\n',
                   ),
                   TextSpan(
                     text: 'Trend Insight:\n',
@@ -348,7 +348,7 @@ class _DeployedAlgoDetailsPageState extends State<DeployedAlgoDetailsPage> {
             DateTime deployDate = (data['deploy_date'] as Timestamp).toDate();
             String formattedDeployedDate = formatDateWithTimezone(deployDate,
                 pattern: 'dd/MM/yyyy hh:mm:ss a',
-                isUtc: false,
+                isUtc: true,
                 timezone: 'UTC+8');
 
             return SingleChildScrollView(
@@ -424,10 +424,8 @@ class _DeployedAlgoDetailsPageState extends State<DeployedAlgoDetailsPage> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Card(
-                      elevation:
-                          10, // Increased elevation for a more pronounced shadow
-                      shadowColor:
-                          Colors.grey.withOpacity(0.8), // Darker shadow
+                      elevation: 10,
+                      shadowColor: Colors.grey.withOpacity(0.8),
                       child: Column(
                         children: [
                           Container(
@@ -463,8 +461,7 @@ class _DeployedAlgoDetailsPageState extends State<DeployedAlgoDetailsPage> {
                                 child: AspectRatio(
                                   aspectRatio: 2,
                                   child: Padding(
-                                    padding: const EdgeInsets.only(
-                                        top: 10.0), // Add top padding here
+                                    padding: const EdgeInsets.only(top: 10.0),
                                     child: LineChart(
                                       LineChartData(
                                         gridData: FlGridData(show: true),
@@ -659,19 +656,19 @@ class _DeployedAlgoDetailsPageState extends State<DeployedAlgoDetailsPage> {
                             PerformanceMetricCard(
                               title: 'MSE (Mean Squared Error)',
                               value: data['deploy_MSE'],
-                              lowThreshold: 10,
-                              highThreshold: 40,
+                              lowThreshold: 5,
+                              highThreshold: 20,
                               cardColor: Color(0xFFFFE5BC), // Light yellow
                             ),
                             PerformanceMetricCard(
                               title: 'R² (R-Squared)',
                               value: data['deploy_R2'],
                               lowThreshold: 0.7,
-                              highThreshold: 0.9,
+                              highThreshold: 0.85,
                               cardColor: Color(0xFFFFE2E5), // Light pink
                             ),
                             PerformanceMetricCard(
-                              title: 'MAPE (Mean Absolute Percentage Error)',
+                              title: 'MAPE (Mean Absolute Percentage Error, %)',
                               value: data['deploy_MAPE'],
                               lowThreshold: 5,
                               highThreshold: 15,
@@ -744,10 +741,9 @@ class _DeployedAlgoDetailsPageState extends State<DeployedAlgoDetailsPage> {
                                   title: 'PE Ratio',
                                   value: data['deploy_peRatio'] ?? 0,
                                   goodThreshold: 15,
-                                  badThreshold: 25,
+                                  badThreshold: 10,
                                   cardColor: Color(0xFFFFE2E5), // Light pink
-                                  imagePath:
-                                      'assets/images/peratio.png', // Add appropriate image path here
+                                  imagePath: 'assets/images/peratio.png',
                                   isTall: true,
                                 ),
                               ],
@@ -760,8 +756,7 @@ class _DeployedAlgoDetailsPageState extends State<DeployedAlgoDetailsPage> {
                                   goodThreshold: 0.5,
                                   badThreshold: 2,
                                   cardColor: Color(0xFFE0E8FC), // Light purple
-                                  imagePath:
-                                      'assets/images/volatility.png', // Add appropriate image path here
+                                  imagePath: 'assets/images/volatility.png',
                                   isTall: true,
                                 ),
                                 Column(
@@ -1045,16 +1040,21 @@ class _BacktestDialogState extends State<BacktestDialog> {
                 pattern: 'yyyy-MM-dd', isUtc: true)),
             trailing: Icon(Icons.calendar_today),
             onTap: () async {
+              DateTime minimumEndDate =
+                  backtestStartDate.add(Duration(days: 730));
               DateTime? pickedStartDate = await showDatePicker(
                 context: context,
                 initialDate: backtestStartDate,
                 firstDate: deployStartDate,
-                lastDate: backtestEndDate,
+                lastDate: deployEndDate.subtract(Duration(days: 730)),
               );
               if (pickedStartDate != null &&
                   pickedStartDate != backtestStartDate) {
                 setState(() {
                   backtestStartDate = pickedStartDate;
+                  if (backtestEndDate.isBefore(minimumEndDate)) {
+                    backtestEndDate = minimumEndDate;
+                  }
                 });
               }
             },
@@ -1067,15 +1067,20 @@ class _BacktestDialogState extends State<BacktestDialog> {
                 pattern: 'yyyy-MM-dd', isUtc: true)),
             trailing: Icon(Icons.calendar_today),
             onTap: () async {
+              DateTime minimumStartDate =
+                  backtestEndDate.subtract(Duration(days: 730));
               DateTime? pickedEndDate = await showDatePicker(
                 context: context,
                 initialDate: backtestEndDate,
-                firstDate: backtestStartDate,
+                firstDate: deployStartDate.add(Duration(days: 730)),
                 lastDate: deployEndDate,
               );
               if (pickedEndDate != null && pickedEndDate != backtestEndDate) {
                 setState(() {
                   backtestEndDate = pickedEndDate;
+                  if (backtestStartDate.isAfter(minimumStartDate)) {
+                    backtestStartDate = minimumStartDate;
+                  }
                 });
               }
             },
@@ -1089,7 +1094,7 @@ class _BacktestDialogState extends State<BacktestDialog> {
             if (Navigator.of(context).canPop()) {
               Navigator.of(context).pop({
                 'isBacktest': false,
-              }); // Return false on cancel
+              });
             }
           },
         ),
@@ -1101,7 +1106,7 @@ class _BacktestDialogState extends State<BacktestDialog> {
                 'isBacktest': true,
                 'backtestStartDate': backtestStartDate,
                 'backtestEndDate': backtestEndDate,
-              }); // Return true with dates on backtest now
+              });
             }
           },
         ),
@@ -1192,12 +1197,22 @@ class PerformanceMetricCard extends StatelessWidget {
   });
 
   Color _determineValueColor() {
-    if (value <= lowThreshold) {
-      return Colors.green;
-    } else if (value > highThreshold) {
-      return Colors.red;
+    if (title.contains('R² (R-Squared)')) {
+      if (value >= highThreshold) {
+        return Colors.green;
+      } else if (value < lowThreshold) {
+        return Colors.red;
+      } else {
+        return Color.fromARGB(255, 226, 153, 52);
+      }
     } else {
-      return Colors.green;
+      if (value <= lowThreshold) {
+        return Colors.green;
+      } else if (value > highThreshold) {
+        return Colors.red;
+      } else {
+        return Color.fromARGB(255, 226, 153, 52);
+      }
     }
   }
 
@@ -1207,7 +1222,7 @@ class PerformanceMetricCard extends StatelessWidget {
       color: cardColor,
       shape: RoundedRectangleBorder(
         side: BorderSide(
-          color: cardColor.darker(0.2), // Darker border color
+          color: cardColor.darker(0.2),
           width: 1,
         ),
         borderRadius: BorderRadius.circular(8),
@@ -1226,7 +1241,7 @@ class PerformanceMetricCard extends StatelessWidget {
             Expanded(
               child: Center(
                 child: Text(
-                  '${value.toStringAsFixed(2)}%',
+                  '${value.toStringAsFixed(2)}',
                   style: GoogleFonts.robotoCondensed(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -1263,20 +1278,40 @@ class AnalysisMetricCard<T> extends StatelessWidget {
   });
 
   Color _determineValueColor() {
-    if (value is num) {
+    if (value == null || goodThreshold == null || badThreshold == null) {
+      return Colors.black;
+    }
+
+    if (value is num && goodThreshold is num && badThreshold is num) {
       num numValue = value as num;
       num numGoodThreshold = goodThreshold as num;
       num numBadThreshold = badThreshold as num;
-      if (numValue <= numGoodThreshold) {
-        return Colors.green;
-      } else if (numValue >= numBadThreshold) {
-        return Colors.red;
-      } else {
-        return Colors.green;
+
+      if (title.contains('EPS') ||
+          title.contains('Market Cap') ||
+          title.contains('PE Ratio')) {
+        if (numValue >= numGoodThreshold) {
+          return Colors.green;
+        } else if (numValue < numBadThreshold) {
+          return Colors.red;
+        } else {
+          return Color.fromARGB(255, 226, 153, 52);
+        }
+      } else if (title.contains('Beta') || title.contains('Volatility')) {
+        if (numValue <= numGoodThreshold) {
+          return Colors.green;
+        } else if (numValue >= numBadThreshold) {
+          return Colors.red;
+        } else {
+          return Color.fromARGB(255, 226, 153, 52);
+        }
       }
-    } else if (value is String) {
+    }
+
+    if (value is String) {
       return value == goodThreshold ? Colors.green : Colors.red;
     }
+
     return Colors.black;
   }
 
@@ -1292,7 +1327,7 @@ class AnalysisMetricCard<T> extends StatelessWidget {
       color: cardColor,
       shape: RoundedRectangleBorder(
         side: BorderSide(
-          color: cardColor.darker(0.2), // Darker border color
+          color: cardColor.darker(0.2),
           width: 1,
         ),
         borderRadius: BorderRadius.circular(8),
@@ -1322,8 +1357,8 @@ class AnalysisMetricCard<T> extends StatelessWidget {
                 children: [
                   Center(
                     child: SizedBox(
-                      width: 60, // Adjust the width as needed
-                      height: 90, // Adjust the height as needed
+                      width: 60,
+                      height: 90,
                       child: Image.asset(imagePath!),
                     ),
                   ),

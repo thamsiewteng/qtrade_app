@@ -36,27 +36,22 @@ class _SignUpPageState extends State<SignUpPage> {
         );
 
         if (user != null) {
-          // Add default fields to Firestore using the user ID as the document ID
           await _addDefaultUserFields(user.uid, email, fullName);
 
-          // Show a success message using Snackbar
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Account created successfully!'),
             ),
           );
 
-          // Delay for a few seconds before navigating to the login page
           await Future.delayed(Duration(seconds: 2));
 
-          // Navigate to the login page
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => LoginPage()),
           );
         }
       } catch (e) {
-        // If there is an error, show a dialog with the error message
         _showErrorDialog(e.toString());
       }
     } else {
@@ -103,11 +98,15 @@ class _SignUpPageState extends State<SignUpPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.of(context).pop(),
+        automaticallyImplyLeading: false,
+        title: Text(
+          'Create an account',
+          style: GoogleFonts.robotoCondensed(
+            color: Colors.black,
+            fontSize: 30,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        title: Text('Create an account', style: GoogleFonts.robotoCondensed()),
         backgroundColor: Colors.white,
         elevation: 0,
       ),

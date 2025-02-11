@@ -24,16 +24,14 @@ class _HomePageState extends State<HomePage> {
       FirebaseFirestore.instance.collection('investment_guides');
 
   Map<String, double> currentPrices = {};
-  bool isLoading = true; // Add a loading state
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    fetchCurrentPrices();
   }
 
-  Future<void> fetchCurrentPrices() async {
-    // Fetch the current prices for the stocks in the portfolio
+  Future<Map<String, dynamic>> fetchData() async {
     DocumentSnapshot userSnapshot = await firestore
         .collection('users')
         .doc(FirebaseAuth.instance.currentUser!.uid)
@@ -43,14 +41,10 @@ class _HomePageState extends State<HomePage> {
     for (var holding in holdings) {
       String ticker = holding['hs_tickerSymbol'];
       double currentPrice = await getCurrentMarketPrice(ticker);
-      setState(() {
-        currentPrices[ticker] = currentPrice;
-      });
+      currentPrices[ticker] = currentPrice;
     }
 
-    setState(() {
-      isLoading = false; // Update the loading state
-    });
+    return userSnapshot.data() as Map<String, dynamic>;
   }
 
   Future<double> getCurrentMarketPrice(String tickerSymbol) async {
@@ -73,7 +67,7 @@ class _HomePageState extends State<HomePage> {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'tickers': ['GOOG', 'AAPL', 'AMZN']
-      }), // Example tickers
+      }),
     );
 
     if (response.statusCode == 200) {
@@ -117,27 +111,25 @@ class _HomePageState extends State<HomePage> {
           color: Colors.white,
         ),
         child: SingleChildScrollView(
-          child: FutureBuilder<DocumentSnapshot>(
-            future: firestore.collection('users').doc(user.uid).get(),
+          child: FutureBuilder<Map<String, dynamic>>(
+            future: fetchData(),
             builder: (BuildContext context,
-                AsyncSnapshot<DocumentSnapshot> snapshot) {
+                AsyncSnapshot<Map<String, dynamic>> snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return Center(child: CircularProgressIndicator());
               }
               if (snapshot.hasError) {
                 return Center(child: Text("Something went wrong"));
               }
-              if (!snapshot.hasData || !snapshot.data!.exists) {
+              if (!snapshot.hasData) {
                 return Center(child: Text("User not found."));
               }
 
-              Map<String, dynamic> userData =
-                  snapshot.data!.data() as Map<String, dynamic>;
+              Map<String, dynamic> userData = snapshot.data!;
               String fullName = userData['fullName'] ?? 'User';
               double assetPortfolio =
                   (userData['assetPortfolio'] as num).toDouble();
 
-              // Calculate total buy-in and current value
               double totalBuyInValue = 0;
               double totalCurrentValue = 0;
 
@@ -163,7 +155,7 @@ class _HomePageState extends State<HomePage> {
                     ((totalCurrentValue - totalBuyInValue) / totalBuyInValue) *
                         100;
               }
-
+              isLoading = false;
               IconData indicatorIcon;
               Color indicatorColor;
 
@@ -204,10 +196,9 @@ class _HomePageState extends State<HomePage> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Card(
-                        color:
-                            Colors.transparent, // To make the card transparent
-                        elevation: 0, // Remove card shadow
-                        margin: EdgeInsets.all(0), // Remove card margin
+                        color: Colors.transparent,
+                        elevation: 0,
+                        margin: EdgeInsets.all(0),
                         child: Padding(
                           padding: EdgeInsets.all(16.0),
                           child: Column(
@@ -267,12 +258,10 @@ class _HomePageState extends State<HomePage> {
                                 ),
                                 style: ElevatedButton.styleFrom(
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(
-                                        10), // Button border radius
+                                    borderRadius: BorderRadius.circular(10),
                                   ),
-                                  backgroundColor:
-                                      Color(0xFF0D0828), // Background color
-                                  foregroundColor: Colors.white, // Text color
+                                  backgroundColor: Color(0xFF0D0828),
+                                  foregroundColor: Colors.white,
                                 ),
                               ),
                             ],
@@ -336,8 +325,7 @@ class _HomePageState extends State<HomePage> {
                             child: Text(
                               'See All',
                               style: GoogleFonts.robotoCondensed(
-                                color: Color(
-                                    0xFF0D0828), // Adjust to match the screenshot
+                                color: Color(0xFF0D0828),
                               ),
                             ),
                           ),
@@ -364,7 +352,6 @@ class _HomePageState extends State<HomePage> {
                               return Text("No Investment Guides Found");
                             }
 
-                            // Randomize and get three documents
                             var allGuides = snapshot.data!.docs;
                             allGuides.shuffle(Random());
                             var randomGuides = allGuides.take(3).toList();
@@ -380,7 +367,7 @@ class _HomePageState extends State<HomePage> {
                               }).toList(),
                             );
                           },
-                        ), // ... More content
+                        ),
                       ],
                     ),
                   ),
@@ -392,9 +379,7 @@ class _HomePageState extends State<HomePage> {
       ),
       bottomNavigationBar: CustomBottomNavigationBar(
         currentIndex: 0,
-        onTap: (index) {
-          // Handle navigation bar tap
-        },
+        onTap: (index) {},
       ),
     );
   }

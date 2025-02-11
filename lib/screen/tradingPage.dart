@@ -24,8 +24,8 @@ class TradingPage extends StatefulWidget {
 class _TradingPageState extends State<TradingPage> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   Map<String, double> portfolioDistribution = {};
-  bool isPositionsSelected = true; // Toggle state
-  final double transactionFeePercentage = 0.002; // 0.2% transaction fee
+  bool isPositionsSelected = true;
+  final double transactionFeePercentage = 0.002;
 
   @override
   void initState() {
@@ -63,13 +63,11 @@ class _TradingPageState extends State<TradingPage> {
   }
 
   Future<void> checkAndExecuteTransactions(BuildContext context) async {
-    print("jj");
-    print(isUSEquityMarketOpen());
-    // if (!isUSEquityMarketOpen()) {
-    //   ScaffoldMessenger.of(context)
-    //       .showSnackBar(SnackBar(content: Text("Market is not open")));
-    //   return;
-    // }
+    if (!isUSEquityMarketOpen()) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Market is not open")));
+      return;
+    }
 
     User? user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -125,7 +123,6 @@ class _TradingPageState extends State<TradingPage> {
       Map<String, dynamic> transaction,
       DocumentReference userRef,
       double executedPrice) async {
-    // Convert quantity to double
     double quantity = (transaction['pt_quantity'] as num).toDouble();
     double transactionValue = executedPrice * quantity;
     double totalCost =
@@ -135,20 +132,16 @@ class _TradingPageState extends State<TradingPage> {
         {'pt_orderStatus': 'executed', 'pt_executedPrice': executedPrice});
     DocumentSnapshot userData = await userRef.get();
 
-    // Convert asset portfolio to double
     double currentAssetPortfolio =
         (userData['assetPortfolio'] as num).toDouble();
 
-    // Calculate new asset portfolio value
     double newAssetPortfolio = currentAssetPortfolio - totalCost;
 
-    // Get the current holdings
     List<dynamic> holdings =
         (userData['holding_shares'] as List<dynamic>) ?? [];
 
     bool stockExists = false;
 
-    // Update the quantity and buy-in price if the stock already exists in holdings
     for (var holding in holdings) {
       if (holding['hs_tickerSymbol'] == transaction['pt_stockSymbol']) {
         double existingQuantity = (holding['hs_quantity'] as num).toDouble();
@@ -156,7 +149,6 @@ class _TradingPageState extends State<TradingPage> {
             (holding['hs_buyInPrice'] as num).toDouble();
         double newQuantity = existingQuantity + quantity;
 
-        // Calculate the new average buy-in price
         double newBuyInPrice =
             ((existingBuyInPrice * existingQuantity) + totalCost) / newQuantity;
 
@@ -173,7 +165,6 @@ class _TradingPageState extends State<TradingPage> {
     }
 
     if (!stockExists) {
-      // Append the new holding if the stock doesn't exist in the current holdings
       Map<String, dynamic> newHolding = {
         'hs_buyInPrice': executedPrice,
         'hs_purchaseDate': DateFormat('yyyy-MM-dd').format(DateTime.now()),
@@ -198,7 +189,6 @@ class _TradingPageState extends State<TradingPage> {
       Map<String, dynamic> transaction,
       DocumentReference userRef,
       double executedPrice) async {
-    // Convert quantity to double
     double quantity = (transaction['pt_quantity'] as num).toDouble();
     double transactionValue = executedPrice * quantity;
     double totalRevenue =
@@ -208,20 +198,16 @@ class _TradingPageState extends State<TradingPage> {
         {'pt_orderStatus': 'executed', 'pt_executedPrice': executedPrice});
     DocumentSnapshot userData = await userRef.get();
 
-    // Convert asset portfolio to double
     double currentAssetPortfolio =
         (userData['assetPortfolio'] as num).toDouble();
 
-    // Calculate new asset portfolio value
     double newAssetPortfolio = currentAssetPortfolio + totalRevenue;
 
-    // Get the current holdings
     List<dynamic> holdings =
         (userData['holding_shares'] as List<dynamic>) ?? [];
 
     bool stockExists = false;
 
-    // Update the quantity if the stock already exists in holdings
     for (var holding in holdings) {
       if (holding['hs_tickerSymbol'] == transaction['pt_stockSymbol']) {
         double existingQuantity = (holding['hs_quantity'] as num).toDouble();
@@ -232,7 +218,6 @@ class _TradingPageState extends State<TradingPage> {
         double newQuantity = existingQuantity - quantity;
 
         if (newQuantity == 0) {
-          // Remove the stock if all shares are sold
           holdings.remove(holding);
         } else {
           holding['hs_quantity'] = newQuantity;
@@ -264,11 +249,10 @@ class _TradingPageState extends State<TradingPage> {
         .collection('users')
         .doc(user.uid)
         .get();
-    // Safely cast the data to Map<String, dynamic>
+
     Map<String, dynamic>? data = userData.data() as Map<String, dynamic>?;
 
     if (data != null) {
-      // Safely cast the holding shares as List<dynamic>
       List<dynamic>? holdings = data['holding_shares'] as List<dynamic>?;
       if (holdings != null && holdings.isNotEmpty) {
         Map<String, double> stockValues = {};
@@ -287,7 +271,6 @@ class _TradingPageState extends State<TradingPage> {
         }
 
         if (totalValue > 0) {
-          // Compute the percentage for each stock in the portfolio
           Map<String, double> portfolioDistribution =
               stockValues.map((key, value) {
             return MapEntry(key, (value / totalValue) * 100);
@@ -297,13 +280,11 @@ class _TradingPageState extends State<TradingPage> {
             this.portfolioDistribution = portfolioDistribution;
           });
         } else {
-          // Handle cases where there are holdings but no calculable values
           setState(() {
             portfolioDistribution = {};
           });
         }
       } else {
-        // Handle cases where there are no holdings
         setState(() {
           portfolioDistribution = {};
         });
@@ -373,7 +354,6 @@ class _TradingPageState extends State<TradingPage> {
                       holdings: holdings,
                       refreshTransactions: () =>
                           checkAndExecuteTransactions(context),
-                      // refreshHoldings: () => fetchPortfolioDistribution(),
                     ),
                   ],
                 );
@@ -415,18 +395,15 @@ class PieChartSample2 extends StatelessWidget {
       double screenWidth = MediaQuery.of(context).size.width;
       return Container(
         width: screenWidth - 30,
-        margin:
-            EdgeInsets.symmetric(horizontal: 16), // Adjust horizontal margin
+        margin: EdgeInsets.symmetric(horizontal: 16),
         child: Card(
           child: Padding(
-            padding:
-                const EdgeInsets.all(16), // Outer padding for the entire card
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsets.only(
-                      bottom: 5), // Spacing above the title
+                  padding: const EdgeInsets.only(bottom: 5),
                   child: Text(
                     'Portfolio Distribution',
                     style: GoogleFonts.robotoCondensed(
@@ -439,8 +416,7 @@ class PieChartSample2 extends StatelessWidget {
                   padding: const EdgeInsets.all(5),
                   child: Text(
                     'No data available for portfolio distribution.\n Start investing in paper trading to see your portfolio distribution here.',
-                    textAlign:
-                        TextAlign.center, // This centers the text horizontally
+                    textAlign: TextAlign.center,
                     style: GoogleFonts.robotoCondensed(
                       fontSize: 13,
                       color: const Color.fromARGB(210, 0, 0, 0),
@@ -480,13 +456,12 @@ class PieChartSample2 extends StatelessWidget {
     return Card(
       margin: EdgeInsets.all(16),
       child: Padding(
-        padding: const EdgeInsets.all(16), // Outer padding for the entire card
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding:
-                  const EdgeInsets.only(bottom: 5), // Spacing above the title
+              padding: const EdgeInsets.only(bottom: 5),
               child: Text(
                 'Portfolio Distribution',
                 style: GoogleFonts.robotoCondensed(
@@ -497,21 +472,18 @@ class PieChartSample2 extends StatelessWidget {
               ),
             ),
             Container(
-              padding: EdgeInsets.symmetric(
-                  vertical: 4), // Padding around the pie chart
-              height: 300, // Adjust size as necessary
+              padding: EdgeInsets.symmetric(vertical: 4),
+              height: 300,
               child: SfCircularChart(
                 series: series,
               ),
             ),
             // Adding a legend
             Padding(
-              padding:
-                  const EdgeInsets.only(top: 2), // Padding above the legend
+              padding: const EdgeInsets.only(top: 2),
               child: Wrap(
-                spacing: 10, // Horizontal spacing between legend items
-                runSpacing:
-                    10, // Vertical spacing between lines of legend items
+                spacing: 10,
+                runSpacing: 10,
                 children: portfolioDistribution.entries.map((entry) {
                   final colorIndex =
                       portfolioDistribution.keys.toList().indexOf(entry.key);
@@ -670,9 +642,9 @@ class _OverviewCardState extends State<OverviewCard> {
         borderRadius: BorderRadius.circular(10),
       ),
       child: Card(
-        color: Colors.transparent, // To make the card transparent
-        elevation: 0, // Remove card shadow
-        margin: EdgeInsets.all(0), // Remove card margin
+        color: Colors.transparent,
+        elevation: 0,
+        margin: EdgeInsets.all(0),
         child: Padding(
           padding: EdgeInsets.all(16),
           child: Column(
@@ -725,8 +697,7 @@ class _OverviewCardState extends State<OverviewCard> {
                 ),
                 style: ElevatedButton.styleFrom(
                     shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(10), // Button border radius
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     backgroundColor: Color(0xFF0D0828),
                     foregroundColor: Colors.white),
@@ -859,7 +830,6 @@ class _TodaysOrdersCardState extends State<TodaysOrdersCard> {
 
       await transactionRef.update({'pt_orderStatus': 'canceled'});
 
-      // Refresh orders
       fetchOrders();
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -950,11 +920,7 @@ class _TodaysOrdersCardState extends State<TodaysOrdersCard> {
     return Card(
       margin: EdgeInsets.all(16),
       child: SizedBox(
-        height: orders.isEmpty
-            ? 80.0
-            : 80.0 *
-                min(orders.length,
-                    5), // Set minimum height or adjust based on items
+        height: orders.isEmpty ? 80.0 : 80.0 * min(orders.length, 5),
         child: orders.isEmpty
             ? Center(
                 child: Text(
@@ -1013,7 +979,7 @@ class _TodaysOrdersCardState extends State<TodaysOrdersCard> {
                                 icon: Icon(Icons.cancel, color: Colors.red),
                                 onPressed: orderId != null
                                     ? () => cancelOrder(orderId)
-                                    : null, // Disable the button if order ID is null
+                                    : null,
                               ),
                             ),
                         ],
@@ -1048,7 +1014,7 @@ class _TogglePositionsOrdersWidgetState
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: EdgeInsets.all(16), // Add some margin around the card
+      margin: EdgeInsets.all(16),
       child: Column(
         children: [
           Padding(
@@ -1084,9 +1050,7 @@ class _TogglePositionsOrdersWidgetState
               fillColor: Color(0xFF0D0828),
             ),
           ),
-          Divider(
-              color: Colors.grey[300],
-              thickness: 1), // Optional divider for better visual separation
+          Divider(color: Colors.grey[300], thickness: 1),
           showPositions
               ? HoldingsDetailsCard(holdings: widget.holdings)
               : TodaysOrdersCard(),
